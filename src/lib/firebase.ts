@@ -4,12 +4,13 @@ import { getAuth, GoogleAuthProvider } from 'firebase/auth';
 import { getFirestore } from 'firebase/firestore';
 
 const firebaseConfig = {
-  apiKey: process.env.NEXT_PUBLIC_FIREBASE_API_KEY || "AIzaSyDummyKey",
-  authDomain: process.env.NEXT_PUBLIC_FIREBASE_AUTH_DOMAIN || "adminvault-demo.firebaseapp.com",
-  projectId: process.env.NEXT_PUBLIC_FIREBASE_PROJECT_ID || "adminvault-demo",
-  storageBucket: process.env.NEXT_PUBLIC_FIREBASE_STORAGE_BUCKET || "adminvault-demo.appspot.com",
-  messagingSenderId: process.env.NEXT_PUBLIC_FIREBASE_MESSAGING_SENDER_ID || "123456789",
-  appId: process.env.NEXT_PUBLIC_FIREBASE_APP_ID || "1:123456789:web:abcdef"
+  apiKey: "AIzaSyCrd4pnTO_JjoFpdY_OUqPhet-k_8H6-ko",
+  authDomain: "studio-5676793669-2a70d.firebaseapp.com",
+  projectId: "studio-5676793669-2a70d",
+  storageBucket: "studio-5676793669-2a70d.firebasestorage.app",
+  messagingSenderId: "564605611126",
+  appId: "1:564605611126:web:70b38e6a060538fc744357",
+  measurementId: ""
 };
 
 const app = getApps().length > 0 ? getApp() : initializeApp(firebaseConfig);
