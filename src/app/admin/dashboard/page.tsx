@@ -13,8 +13,7 @@ import {
   ArrowUpRight, 
   TrendingUp,
   BarChart3,
-  Activity,
-  Loader2
+  Activity
 } from "lucide-react";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { ChartContainer, ChartTooltip, ChartTooltipContent } from "@/components/ui/chart";
