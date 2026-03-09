@@ -184,7 +184,7 @@
         "buyerId": { "type": "string" },
         "sellerId": { "type": "string" },
         "productId": { "type": "string" },
-        "status": { "type": "string", "enum": ["pending", "confirmed", "cancelled", "successful"] },
+        "status": { "type": "string", "enum": ["pending", "confirmed", "cancelled", "successful", "expired"] },
         "amount": { "type": "number" }
       },
       "required": ["id", "createdAt", "buyerId", "sellerId", "status"]

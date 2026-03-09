@@ -22,7 +22,7 @@ import {
   Zap,
   Activity,
   Clock,
-  BarChart3
+  ShieldAlert
 } from "lucide-react";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { 
@@ -62,6 +62,7 @@ export default function AdminDashboardPage() {
     confirmed: 0,
     cancelled: 0,
     successful: 0,
+    expired: 0,
   });
 
   useEffect(() => {
@@ -121,7 +122,7 @@ export default function AdminDashboardPage() {
           
           let revenue = 0;
           const pings: PingRecord[] = [];
-          const stats = { pending: 0, confirmed: 0, cancelled: 0, successful: 0 };
+          const stats = { pending: 0, confirmed: 0, cancelled: 0, successful: 0, expired: 0 };
           
           setTotalPings(pingsSnap.size);
 
@@ -138,6 +139,8 @@ export default function AdminDashboardPage() {
               stats.confirmed++;
             } else if (rawStatus === 'cancelled') {
               stats.cancelled++;
+            } else if (rawStatus === 'expired') {
+              stats.expired++;
             } else if (rawStatus === 'successful' || rawStatus === 'completed' || rawStatus === 'success') {
               stats.successful++;
               revenue += amount;
@@ -189,6 +192,7 @@ export default function AdminDashboardPage() {
     if (s === 'pending') return <Badge variant="secondary" className="bg-amber-500/10 text-amber-500 border-amber-500/20">Pending</Badge>;
     if (s === 'confirmed') return <Badge className="bg-blue-500/10 text-blue-500 border-blue-500/20">Confirmed</Badge>;
     if (s === 'cancelled') return <Badge variant="destructive" className="bg-destructive/10 text-destructive border-destructive/20">Cancelled</Badge>;
+    if (s === 'expired') return <Badge variant="outline" className="bg-slate-500/10 text-slate-500 border-slate-500/20">Expired</Badge>;
     return <Badge variant="outline">{status}</Badge>;
   };
 
@@ -238,17 +242,18 @@ export default function AdminDashboardPage() {
         />
       </div>
 
-      <div className="grid gap-4 grid-cols-2 md:grid-cols-4">
+      <div className="grid gap-4 grid-cols-2 md:grid-cols-5">
         {[
-          { label: "Successful", value: pingStats.successful, color: "text-emerald-500", bg: "bg-emerald-500/10" },
-          { label: "Pending", value: pingStats.pending, color: "text-amber-500", bg: "bg-amber-500/10" },
-          { label: "Confirmed", value: pingStats.confirmed, color: "text-blue-500", bg: "bg-blue-500/10" },
-          { label: "Cancelled", value: pingStats.cancelled, color: "text-destructive", bg: "bg-destructive/10" },
+          { label: "Successful", value: pingStats.successful, color: "text-emerald-500", bg: "bg-emerald-500/10", icon: Zap },
+          { label: "Pending", value: pingStats.pending, color: "text-amber-500", bg: "bg-amber-500/10", icon: Clock },
+          { label: "Confirmed", value: pingStats.confirmed, color: "text-blue-500", bg: "bg-blue-500/10", icon: Activity },
+          { label: "Cancelled", value: pingStats.cancelled, color: "text-destructive", bg: "bg-destructive/10", icon: Zap },
+          { label: "Expired", value: pingStats.expired, color: "text-slate-500", bg: "bg-slate-500/10", icon: ShieldAlert },
         ].map((item, idx) => (
           <Card key={idx} className="border-border/50 bg-card/30">
             <CardContent className="p-4 flex flex-col items-center justify-center text-center">
               <div className={`p-2 rounded-full ${item.bg} mb-2`}>
-                <Zap className={`h-4 w-4 ${item.color}`} />
+                <item.icon className={`h-4 w-4 ${item.color}`} />
               </div>
               <p className="text-2xl font-bold">{loading ? "..." : item.value}</p>
               <p className="text-xs text-muted-foreground font-medium uppercase tracking-wider">{item.label} Pings</p>
