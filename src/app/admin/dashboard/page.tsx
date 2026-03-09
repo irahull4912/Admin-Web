@@ -11,16 +11,10 @@ import {
   Package, 
   DollarSign,
   Zap,
-  LayoutGrid,
   Activity,
-  TrendingUp,
-  BarChart3,
-  Clock,
-  Search
+  Clock
 } from "lucide-react";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
-import { ChartContainer, ChartTooltip, ChartTooltipContent } from "@/components/ui/chart";
-import { Bar, BarChart, XAxis, YAxis } from "recharts";
 import { 
   Table, 
   TableBody, 
@@ -31,26 +25,6 @@ import {
 } from "@/components/ui/table";
 import { Badge } from "@/components/ui/badge";
 import { format } from "date-fns";
-
-const chartData = [
-  { month: "Jan", users: 1200, revenue: 4500 },
-  { month: "Feb", users: 2100, revenue: 5200 },
-  { month: "Mar", users: 1800, revenue: 4800 },
-  { month: "Apr", users: 2400, revenue: 6100 },
-  { month: "May", users: 3100, revenue: 7500 },
-  { month: "Jun", users: 2800, revenue: 7200 },
-];
-
-const chartConfig = {
-  users: {
-    label: "Active Users",
-    color: "hsl(var(--primary))",
-  },
-  revenue: {
-    label: "Revenue",
-    color: "hsl(var(--accent))",
-  },
-};
 
 interface PingRecord {
   id: string;
@@ -80,19 +54,11 @@ export default function AdminDashboardPage() {
     successful: 0
   });
 
-  // Category stats
-  const [categoryStats, setCategoryStats] = useState({
-    fashionApparel: 0,
-    fashionFootwear: 0,
-    kidsApparel: 0,
-    kidsFootwear: 0
-  });
-
   useEffect(() => {
     async function fetchDashboardData() {
       try {
         setLoading(true);
-        console.log("Fetching core dashboard data...");
+        console.log("--- Dashboard Data Fetch Start ---");
         
         // Fetch core entities
         const [usersSnap, shopsSnap, productsSnap] = await Promise.all([
@@ -101,7 +67,7 @@ export default function AdminDashboardPage() {
           getDocs(collectionGroup(db, "products")), 
         ]);
 
-        console.log(`Core counts - Users: ${usersSnap.size}, Shops: ${shopsSnap.size}, Products: ${productsSnap.size}`);
+        console.log(`Snapshot sizes - Users: ${usersSnap.size}, Shops: ${shopsSnap.size}, Products: ${productsSnap.size}`);
 
         setTotalUsers(usersSnap.size);
         setTotalSellers(shopsSnap.size);
@@ -109,15 +75,23 @@ export default function AdminDashboardPage() {
 
         // Build lookup maps
         const userMap = new Map();
-        usersSnap.forEach(doc => userMap.set(doc.id, doc.data().name || doc.data().email || "Unknown User"));
+        usersSnap.forEach(doc => {
+          const data = doc.data();
+          userMap.set(doc.id, data.name || data.email || "Unknown User");
+        });
 
         const productMap = new Map();
-        productsSnap.forEach(doc => productMap.set(doc.id, doc.data().name || "Unknown Product"));
+        productsSnap.forEach(doc => {
+          const data = doc.data();
+          productMap.set(doc.id, data.name || "Unknown Product");
+        });
 
         // Fetch Pings
         try {
           const pingsQuery = query(collection(db, "pings"), orderBy("timestamp", "desc"), limit(50));
           const pingsSnap = await getDocs(pingsQuery);
+          
+          console.log(`Total pings fetched (raw): ${pingsSnap.size}`);
           
           let revenue = 0;
           const pings: PingRecord[] = [];
@@ -125,13 +99,16 @@ export default function AdminDashboardPage() {
           
           pingsSnap.forEach(doc => {
             const data = doc.data();
-            const amount = data.amount || data.total || data.totalPrice || 0;
+            const amount = data.amount || data.total || 0;
             
-            const status = (data.status || 'pending').toLowerCase();
-            if (status === 'pending') stats.pending++;
-            else if (status === 'confirmed') stats.confirmed++;
-            else if (status === 'cancelled') stats.cancelled++;
-            else if (status === 'successful' || status === 'completed') {
+            // Normalize status for counting
+            const rawStatus = (data.status || 'pending').toLowerCase();
+            console.log(`Processing ping ${doc.id} - Raw Status: "${data.status}", Normalized: "${rawStatus}"`);
+
+            if (rawStatus === 'pending') stats.pending++;
+            else if (rawStatus === 'confirmed') stats.confirmed++;
+            else if (rawStatus === 'cancelled') stats.cancelled++;
+            else if (rawStatus === 'successful' || rawStatus === 'completed') {
               stats.successful++;
               revenue += amount;
             }
@@ -143,35 +120,23 @@ export default function AdminDashboardPage() {
               sellerId: data.sellerId || 'N/A',
               productId: data.productId || 'N/A',
               status: data.status || 'Pending',
-              senderName: userMap.get(data.buyerId) || "Unknown User",
-              productName: productMap.get(data.productId) || "Unknown Product",
+              senderName: userMap.get(data.buyerId) || `User (${data.buyerId})`,
+              productName: productMap.get(data.productId) || `Product (${data.productId})`,
               amount: amount
             });
           });
+
+          console.log("Final Ping Stats calculated:", stats);
+          console.log("Total Revenue calculated:", revenue);
 
           setTotalRevenue(revenue);
           setPingStats(stats);
           setRecentPings(pings);
         } catch (pingError) {
-          console.error("Error fetching pings:", pingError);
+          console.error("Error fetching pings specifically:", pingError);
         }
 
-        // Calculate Category Stats
-        const cats = { fashionApparel: 0, fashionFootwear: 0, kidsApparel: 0, kidsFootwear: 0 };
-        productsSnap.forEach(doc => {
-          const data = doc.data();
-          const category = data.category?.toLowerCase();
-          const subcategory = data.subcategory?.toLowerCase();
-
-          if (category === 'fashion') {
-            if (subcategory === 'apparel') cats.fashionApparel++;
-            if (subcategory === 'footwear') cats.fashionFootwear++;
-          } else if (category === 'kids') {
-            if (subcategory === 'apparel') cats.kidsApparel++;
-            if (subcategory === 'footwear') cats.kidsFootwear++;
-          }
-        });
-        setCategoryStats(cats);
+        console.log("--- Dashboard Data Fetch End ---");
 
       } catch (error) {
         console.error("General dashboard error:", error);
