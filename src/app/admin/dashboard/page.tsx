@@ -62,6 +62,7 @@ interface PingRecord {
   status: string;
   senderName: string;
   productName: string;
+  amount: number;
 }
 
 export default function AdminDashboardPage() {
@@ -93,7 +94,7 @@ export default function AdminDashboardPage() {
       try {
         setLoading(true);
         
-        // Fetch core entities
+        // Fetch core entities for lookup
         const [usersSnap, shopsSnap, productsSnap] = await Promise.all([
           getDocs(collection(db, "users")),
           getDocs(collection(db, "shops")),
@@ -104,16 +105,16 @@ export default function AdminDashboardPage() {
         setTotalSellers(shopsSnap.size);
         setTotalProducts(productsSnap.size);
 
-        // Build lookup maps for names
+        // Build lookup maps for names to avoid nested fetches
         const userMap = new Map();
         usersSnap.forEach(doc => userMap.set(doc.id, doc.data().name || "Unknown User"));
 
         const productMap = new Map();
         productsSnap.forEach(doc => productMap.set(doc.id, doc.data().name || "Unknown Product"));
 
-        // Fetch Pings
+        // Fetch Pings (increased limit to show "all" recent ones)
         try {
-          const pingsQuery = query(collection(db, "pings"), orderBy("timestamp", "desc"), limit(10));
+          const pingsQuery = query(collection(db, "pings"), orderBy("timestamp", "desc"), limit(50));
           const pingsSnap = await getDocs(pingsQuery);
           
           let revenue = 0;
@@ -122,13 +123,16 @@ export default function AdminDashboardPage() {
           
           pingsSnap.forEach(doc => {
             const data = doc.data();
-            revenue += (data.amount || data.total || 0);
+            const amount = data.amount || data.total || 0;
             
             const status = (data.status || 'pending').toLowerCase();
             if (status === 'pending') stats.pending++;
             else if (status === 'confirmed') stats.confirmed++;
             else if (status === 'cancelled') stats.cancelled++;
-            else if (status === 'successful' || status === 'completed') stats.successful++;
+            else if (status === 'successful' || status === 'completed') {
+              stats.successful++;
+              revenue += amount;
+            }
 
             pings.push({
               id: doc.id,
@@ -138,7 +142,8 @@ export default function AdminDashboardPage() {
               productId: data.productId || 'N/A',
               status: data.status || 'Pending',
               senderName: userMap.get(data.buyerId) || "Unknown User",
-              productName: productMap.get(data.productId) || "Unknown Product"
+              productName: productMap.get(data.productId) || "Unknown Product",
+              amount: amount
             });
           });
 
@@ -165,6 +170,16 @@ export default function AdminDashboardPage() {
           }
         });
         setCategoryStats(cats);
+
+        // sellerSubscriptions fetch is temporarily commented out per previous instructions
+        /*
+        try {
+          const subsSnap = await getDocs(collection(db, "sellerSubscriptions"));
+          // process subs...
+        } catch (subError) {
+          console.error("Error fetching sellerSubscriptions:", subError);
+        }
+        */
 
       } catch (error) {
         console.error("General error fetching dashboard data:", error);
