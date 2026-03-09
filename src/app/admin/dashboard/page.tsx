@@ -238,9 +238,8 @@ export default function AdminDashboardPage() {
         />
       </div>
 
-      <div className="grid gap-4 grid-cols-2 md:grid-cols-5">
+      <div className="grid gap-4 grid-cols-2 md:grid-cols-4">
         {[
-          { label: "Total", value: totalPings, color: "text-primary", bg: "bg-primary/10" },
           { label: "Successful", value: pingStats.successful, color: "text-emerald-500", bg: "bg-emerald-500/10" },
           { label: "Pending", value: pingStats.pending, color: "text-amber-500", bg: "bg-amber-500/10" },
           { label: "Confirmed", value: pingStats.confirmed, color: "text-blue-500", bg: "bg-blue-500/10" },
