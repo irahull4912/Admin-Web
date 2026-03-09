@@ -69,7 +69,6 @@ export default function AdminDashboardPage() {
     async function fetchDashboardData() {
       try {
         setLoading(true);
-        console.log("--- Dashboard Data Fetch Start ---");
         
         // 1. Direct Debug Check for specific document
         try {
@@ -77,8 +76,6 @@ export default function AdminDashboardPage() {
           const directPingSnap = await getDoc(directPingRef);
           if (directPingSnap.exists()) {
             console.log("DEBUG: Direct Ping Fetch SUCCESS:", directPingSnap.data());
-          } else {
-            console.log("DEBUG: Direct Ping Fetch FAILED: Document 'yurRTVAC4VmO3nXCXImP' not found in 'pings' collection.");
           }
         } catch (debugError) {
           console.error("DEBUG: Direct Ping Fetch Error:", debugError);
@@ -90,8 +87,6 @@ export default function AdminDashboardPage() {
           getDocs(collection(db, "shops")),
           getDocs(collectionGroup(db, "products")), 
         ]);
-
-        console.log(`Snapshot sizes - Users: ${usersSnap.size}, Shops: ${shopsSnap.size}, Products: ${productsSnap.size}`);
 
         setTotalUsers(usersSnap.size);
         setTotalSellers(shopsSnap.size);
@@ -118,11 +113,8 @@ export default function AdminDashboardPage() {
             const pingsQuery = query(collection(db, "pings"), orderBy("timestamp", "desc"), limit(50));
             pingsSnap = await getDocs(pingsQuery);
           } catch (e) {
-            console.warn("Pings query with orderBy failed (missing index?), falling back to basic fetch.");
             pingsSnap = await getDocs(collection(db, "pings"));
           }
-          
-          console.log(`Total pings fetched (raw): ${pingsSnap.size}`);
           
           let revenue = 0;
           const pings: PingRecord[] = [];
@@ -132,9 +124,8 @@ export default function AdminDashboardPage() {
             const data = doc.data();
             const amount = data.amount || data.total || 0;
             
-            // Normalize status for counting (trim and lowercase)
+            // Normalize status for counting
             const rawStatus = (data.status || 'pending').toString().toLowerCase().trim();
-            console.log(`DEBUG: Processing Ping ${doc.id} - Raw Status: "${data.status}", Normalized: "${rawStatus}"`);
             
             if (rawStatus === 'pending') stats.pending++;
             else if (rawStatus === 'confirmed') stats.confirmed++;
@@ -157,17 +148,12 @@ export default function AdminDashboardPage() {
             });
           });
 
-          console.log("Final Ping Stats calculated:", stats);
-          console.log("Total Revenue calculated:", revenue);
-
           setTotalRevenue(revenue);
           setPingStats(stats);
           setRecentPings(pings);
         } catch (pingError) {
           console.error("Error fetching pings collection:", pingError);
         }
-
-        console.log("--- Dashboard Data Fetch End ---");
 
       } catch (error) {
         console.error("General dashboard error:", error);
@@ -211,19 +197,12 @@ export default function AdminDashboardPage() {
         </div>
       </div>
 
-      <div className="grid gap-6 sm:grid-cols-2 lg:grid-cols-4">
+      <div className="grid gap-6 sm:grid-cols-2 lg:grid-cols-3">
         <StatCard 
           label="Total Revenue" 
           value={loading ? "..." : `$${totalRevenue.toLocaleString()}`} 
           icon={DollarSign} 
           trend="+22.5%" 
-          trendType="positive"
-        />
-        <StatCard 
-          label="Successful Pings" 
-          value={loading ? "..." : pingStats.successful.toLocaleString()} 
-          icon={CheckCircle} 
-          trend="+15.3%" 
           trendType="positive"
         />
         <StatCard 
