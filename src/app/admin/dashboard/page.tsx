@@ -70,37 +70,44 @@ export default function AdminDashboardPage() {
       try {
         setLoading(true);
         
-        // Fetch core entities - sellerSubscriptions and pings are temporarily commented out
+        // Fetch core entities
         const [usersSnap, shopsSnap, productsSnap] = await Promise.all([
           getDocs(collection(db, "users")),
           getDocs(collection(db, "shops")),
           getDocs(collection(db, "products")),
-          // getDocs(collection(db, "pings")), // Temporarily commented out
-          // getDocs(collection(db, "sellerSubscriptions")) // Temporarily commented out
         ]);
 
         setTotalUsers(usersSnap.size);
         setTotalSellers(shopsSnap.size);
         setTotalProducts(productsSnap.size);
 
-        // Calculate Revenue and Ping Statuses from 'pings' - Temporarily disabled
-        /*
-        let revenue = 0;
-        const pings = { pending: 0, confirmed: 0, cancelled: 0, successful: 0 };
-        
-        pingsSnap.forEach(doc => {
-          const data = doc.data();
-          revenue += (data.amount || data.total || 0);
+        // Fetch Pings with specific error logging
+        try {
+          const pingsSnap = await getDocs(collection(db, "pings"));
+          let revenue = 0;
+          const pings = { pending: 0, confirmed: 0, cancelled: 0, successful: 0 };
           
-          const status = data.status?.toLowerCase();
-          if (status === 'pending') pings.pending++;
-          else if (status === 'confirmed') pings.confirmed++;
-          else if (status === 'cancelled') pings.cancelled++;
-          else if (status === 'successful' || status === 'completed') pings.successful++;
-        });
+          pingsSnap.forEach(doc => {
+            const data = doc.data();
+            revenue += (data.amount || data.total || 0);
+            
+            const status = data.status?.toLowerCase();
+            if (status === 'pending') pings.pending++;
+            else if (status === 'confirmed') pings.confirmed++;
+            else if (status === 'cancelled') pings.cancelled++;
+            else if (status === 'successful' || status === 'completed') pings.successful++;
+          });
 
-        setTotalRevenue(revenue);
-        setPingStats(pings);
+          setTotalRevenue(revenue);
+          setPingStats(pings);
+        } catch (pingError) {
+          console.error("Error fetching pings collection (checking permissions):", pingError);
+        }
+
+        // Note: sellerSubscriptions fetch remains commented out per request
+        /*
+        const sellerSubsSnap = await getDocs(collection(db, "sellerSubscriptions"));
+        // process seller subscriptions...
         */
 
         // Calculate Category Stats from 'products'
@@ -121,7 +128,7 @@ export default function AdminDashboardPage() {
         setCategoryStats(cats);
 
       } catch (error) {
-        console.error("Error fetching dashboard data:", error);
+        console.error("General error fetching dashboard data:", error);
       } finally {
         setLoading(false);
       }
