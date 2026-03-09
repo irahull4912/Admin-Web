@@ -22,7 +22,8 @@ import {
   DollarSign,
   Zap,
   Activity,
-  Clock
+  Clock,
+  BarChart3
 } from "lucide-react";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { 
@@ -54,6 +55,7 @@ export default function AdminDashboardPage() {
   const [totalSellers, setTotalSellers] = useState(0);
   const [totalProducts, setTotalProducts] = useState(0);
   const [totalRevenue, setTotalRevenue] = useState(0);
+  const [totalPings, setTotalPings] = useState(0);
   const [recentPings, setRecentPings] = useState<PingRecord[]>([]);
 
   // Ping statuses
@@ -111,6 +113,7 @@ export default function AdminDashboardPage() {
             const pingsQuery = query(collection(db, "pings"), orderBy("timestamp", "desc"), limit(50));
             pingsSnap = await getDocs(pingsQuery);
           } catch (e) {
+            console.log("Falling back to unindexed fetch for pings");
             pingsSnap = await getDocs(collection(db, "pings"));
           }
           
@@ -118,6 +121,8 @@ export default function AdminDashboardPage() {
           const pings: PingRecord[] = [];
           const stats = { pending: 0, confirmed: 0, cancelled: 0, successful: 0 };
           
+          setTotalPings(pingsSnap.size);
+
           pingsSnap.forEach(doc => {
             const data = doc.data();
             const amount = data.amount || data.total || 0;
@@ -195,12 +200,19 @@ export default function AdminDashboardPage() {
         </div>
       </div>
 
-      <div className="grid gap-6 sm:grid-cols-2 lg:grid-cols-3">
+      <div className="grid gap-6 sm:grid-cols-2 lg:grid-cols-4">
         <StatCard 
           label="Total Revenue" 
           value={loading ? "..." : `$${totalRevenue.toLocaleString()}`} 
           icon={DollarSign} 
           trend="+22.5%" 
+          trendType="positive"
+        />
+        <StatCard 
+          label="Total Pings" 
+          value={loading ? "..." : totalPings.toLocaleString()} 
+          icon={BarChart3} 
+          trend="+15.2%" 
           trendType="positive"
         />
         <StatCard 
