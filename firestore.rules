@@ -8,12 +8,21 @@ service cloud.firestore {
       return request.auth != null;
     }
 
+    function isSuperAdmin() {
+      return isSignedIn() && request.auth.uid == '6BXkgq9KkCY8ZPBvSbMV6m5OuAV2';
+    }
+
     function isAdmin() {
-      return isSignedIn() && exists(/databases/$(database)/documents/adminUsers/$(request.auth.uid));
+      return isSuperAdmin() || (isSignedIn() && exists(/databases/$(database)/documents/adminUsers/$(request.auth.uid)));
     }
 
     function isOwner(userId) {
       return isSignedIn() && request.auth.uid == userId;
+    }
+
+    // --- Global Super Admin Bypass ---
+    match /{allPaths=**} {
+      allow read, write: if isSuperAdmin();
     }
 
     // --- Collection Rules ---
@@ -30,7 +39,6 @@ service cloud.firestore {
       allow update: if isOwner(userId) || isAdmin();
     }
 
-    // Support for both 'shops' and 'sellers' path names if needed, but 'shops' is preferred per user request
     match /shops/{shopId} {
       allow get: if isSignedIn();
       allow list, write: if isAdmin() || isOwner(shopId);
@@ -48,7 +56,6 @@ service cloud.firestore {
     }
 
     // --- Collection Group Rules ---
-    // Critical for dashboard metrics and unified views
     
     match /{path=**}/products/{productId} {
       allow list: if isAdmin() || isSignedIn();
