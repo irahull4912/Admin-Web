@@ -109,7 +109,7 @@ export default function AdminDashboardPage() {
         try {
           let pingsSnap;
           try {
-            // Using createdAt as requested by the user
+            // Using createdAt as requested - do not revert to 'timestamp'
             const pingsQuery = query(collection(db, "pings"), orderBy("createdAt", "desc"), limit(50));
             pingsSnap = await getDocs(pingsQuery);
             console.log(`DEBUG: Indexed Pings Count (createdAt): ${pingsSnap.size}`);
@@ -238,8 +238,9 @@ export default function AdminDashboardPage() {
         />
       </div>
 
-      <div className="grid gap-4 grid-cols-2 md:grid-cols-4">
+      <div className="grid gap-4 grid-cols-2 md:grid-cols-5">
         {[
+          { label: "Total", value: totalPings, color: "text-primary", bg: "bg-primary/10" },
           { label: "Successful", value: pingStats.successful, color: "text-emerald-500", bg: "bg-emerald-500/10" },
           { label: "Pending", value: pingStats.pending, color: "text-amber-500", bg: "bg-amber-500/10" },
           { label: "Confirmed", value: pingStats.confirmed, color: "text-blue-500", bg: "bg-blue-500/10" },
