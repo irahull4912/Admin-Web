@@ -2,7 +2,17 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { collection, getDocs, query, orderBy, limit, Timestamp, collectionGroup } from "firebase/firestore";
+import { 
+  collection, 
+  getDocs, 
+  getDoc,
+  doc,
+  query, 
+  orderBy, 
+  limit, 
+  Timestamp, 
+  collectionGroup 
+} from "firebase/firestore";
 import { db } from "@/lib/firebase";
 import { StatCard } from "../components/stat-card";
 import { 
@@ -60,7 +70,21 @@ export default function AdminDashboardPage() {
         setLoading(true);
         console.log("--- Dashboard Data Fetch Start ---");
         
-        // Fetch core entities
+        // 1. Direct Debug Check for specific document
+        try {
+          const directPingRef = doc(db, "pings", "yurRTVAC4VmO3nXCXImP");
+          const directPingSnap = await getDoc(directPingRef);
+          if (directPingSnap.exists()) {
+            console.log("DEBUG: Direct Ping Fetch SUCCESS:", directPingSnap.data());
+            console.log("DEBUG: Direct Ping STATUS:", directPingSnap.data().status);
+          } else {
+            console.log("DEBUG: Direct Ping Fetch FAILED: Document 'yurRTVAC4VmO3nXCXImP' not found in 'pings' collection.");
+          }
+        } catch (debugError) {
+          console.error("DEBUG: Direct Ping Fetch Error:", debugError);
+        }
+
+        // 2. Fetch core entities
         const [usersSnap, shopsSnap, productsSnap] = await Promise.all([
           getDocs(collection(db, "users")),
           getDocs(collection(db, "shops")),
@@ -86,7 +110,7 @@ export default function AdminDashboardPage() {
           productMap.set(doc.id, data.name || "Unknown Product");
         });
 
-        // Fetch Pings
+        // 3. Fetch Pings
         try {
           const pingsQuery = query(collection(db, "pings"), orderBy("timestamp", "desc"), limit(50));
           const pingsSnap = await getDocs(pingsQuery);
@@ -103,8 +127,7 @@ export default function AdminDashboardPage() {
             
             // Normalize status for counting
             const rawStatus = (data.status || 'pending').toLowerCase();
-            console.log(`Processing ping ${doc.id} - Raw Status: "${data.status}", Normalized: "${rawStatus}"`);
-
+            
             if (rawStatus === 'pending') stats.pending++;
             else if (rawStatus === 'confirmed') stats.confirmed++;
             else if (rawStatus === 'cancelled') stats.cancelled++;
@@ -133,7 +156,7 @@ export default function AdminDashboardPage() {
           setPingStats(stats);
           setRecentPings(pings);
         } catch (pingError) {
-          console.error("Error fetching pings specifically:", pingError);
+          console.error("Error fetching pings collection:", pingError);
         }
 
         console.log("--- Dashboard Data Fetch End ---");
