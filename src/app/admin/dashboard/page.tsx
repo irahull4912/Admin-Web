@@ -2,7 +2,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { collection, getDocs, query } from "firebase/firestore";
+import { collection, getDocs } from "firebase/firestore";
 import { db } from "@/lib/firebase";
 import { StatCard } from "../components/stat-card";
 import { 
@@ -70,12 +70,12 @@ export default function AdminDashboardPage() {
       try {
         setLoading(true);
         
-        // Fetch core entities - sellerSubscriptions is temporarily commented out
-        const [usersSnap, shopsSnap, productsSnap, pingsSnap] = await Promise.all([
+        // Fetch core entities - sellerSubscriptions and pings are temporarily commented out
+        const [usersSnap, shopsSnap, productsSnap] = await Promise.all([
           getDocs(collection(db, "users")),
           getDocs(collection(db, "shops")),
           getDocs(collection(db, "products")),
-          getDocs(collection(db, "pings")),
+          // getDocs(collection(db, "pings")), // Temporarily commented out
           // getDocs(collection(db, "sellerSubscriptions")) // Temporarily commented out
         ]);
 
@@ -83,16 +83,15 @@ export default function AdminDashboardPage() {
         setTotalSellers(shopsSnap.size);
         setTotalProducts(productsSnap.size);
 
-        // Calculate Revenue and Ping Statuses from 'pings'
+        // Calculate Revenue and Ping Statuses from 'pings' - Temporarily disabled
+        /*
         let revenue = 0;
         const pings = { pending: 0, confirmed: 0, cancelled: 0, successful: 0 };
         
         pingsSnap.forEach(doc => {
           const data = doc.data();
-          // Revenue calculation (assuming 'amount' or 'total' field)
           revenue += (data.amount || data.total || 0);
           
-          // Status tracking
           const status = data.status?.toLowerCase();
           if (status === 'pending') pings.pending++;
           else if (status === 'confirmed') pings.confirmed++;
@@ -102,6 +101,7 @@ export default function AdminDashboardPage() {
 
         setTotalRevenue(revenue);
         setPingStats(pings);
+        */
 
         // Calculate Category Stats from 'products'
         const cats = { fashionApparel: 0, fashionFootwear: 0, kidsApparel: 0, kidsFootwear: 0 };
