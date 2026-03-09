@@ -2,7 +2,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { collection, getDocs, query, orderBy, limit, Timestamp } from "firebase/firestore";
+import { collection, getDocs, query, orderBy, limit, Timestamp, collectionGroup } from "firebase/firestore";
 import { db } from "@/lib/firebase";
 import { StatCard } from "../components/stat-card";
 import { 
@@ -93,29 +93,35 @@ export default function AdminDashboardPage() {
     async function fetchDashboardData() {
       try {
         setLoading(true);
+        console.log("Fetching core dashboard data...");
         
-        // Fetch core entities for lookup
+        // Fetch core entities
+        // Note: products and shops might be nested, using collectionGroup for products per backend.json
         const [usersSnap, shopsSnap, productsSnap] = await Promise.all([
           getDocs(collection(db, "users")),
           getDocs(collection(db, "shops")),
-          getDocs(collection(db, "products")),
+          getDocs(collectionGroup(db, "products")), 
         ]);
+
+        console.log(`Core counts - Users: ${usersSnap.size}, Shops: ${shopsSnap.size}, Products: ${productsSnap.size}`);
 
         setTotalUsers(usersSnap.size);
         setTotalSellers(shopsSnap.size);
         setTotalProducts(productsSnap.size);
 
-        // Build lookup maps for names to avoid nested fetches
+        // Build lookup maps for names to avoid nested fetches in the ping loop
         const userMap = new Map();
-        usersSnap.forEach(doc => userMap.set(doc.id, doc.data().name || "Unknown User"));
+        usersSnap.forEach(doc => userMap.set(doc.id, doc.data().name || doc.data().email || "Unknown User"));
 
         const productMap = new Map();
         productsSnap.forEach(doc => productMap.set(doc.id, doc.data().name || "Unknown Product"));
 
-        // Fetch Pings (increased limit to show "all" recent ones)
+        // Fetch Pings (uncommented as requested)
         try {
+          console.log("Fetching pings collection...");
           const pingsQuery = query(collection(db, "pings"), orderBy("timestamp", "desc"), limit(50));
           const pingsSnap = await getDocs(pingsQuery);
+          console.log(`Pings found: ${pingsSnap.size}`);
           
           let revenue = 0;
           const pings: PingRecord[] = [];
@@ -123,7 +129,7 @@ export default function AdminDashboardPage() {
           
           pingsSnap.forEach(doc => {
             const data = doc.data();
-            const amount = data.amount || data.total || 0;
+            const amount = data.amount || data.total || data.totalPrice || 0;
             
             const status = (data.status || 'pending').toLowerCase();
             if (status === 'pending') stats.pending++;
@@ -171,16 +177,6 @@ export default function AdminDashboardPage() {
         });
         setCategoryStats(cats);
 
-        // sellerSubscriptions fetch is temporarily commented out per previous instructions
-        /*
-        try {
-          const subsSnap = await getDocs(collection(db, "sellerSubscriptions"));
-          // process subs...
-        } catch (subError) {
-          console.error("Error fetching sellerSubscriptions:", subError);
-        }
-        */
-
       } catch (error) {
         console.error("General error fetching dashboard data:", error);
       } finally {
@@ -194,7 +190,11 @@ export default function AdminDashboardPage() {
   const formatPingDate = (timestamp: any) => {
     if (!timestamp) return "N/A";
     const date = timestamp instanceof Timestamp ? timestamp.toDate() : new Date(timestamp);
-    return format(date, "MMM d, h:mm a");
+    try {
+      return format(date, "MMM d, h:mm a");
+    } catch {
+      return "Invalid Date";
+    }
   };
 
   const getStatusBadge = (status: string) => {
@@ -297,12 +297,17 @@ export default function AdminDashboardPage() {
               {loading ? (
                 Array.from({ length: 5 }).map((_, i) => (
                   <TableRow key={i}>
-                    <TableCell colSpan={5} className="h-12 text-center text-muted-foreground animate-pulse">Loading ping data...</TableCell>
+                    <TableCell colSpan={5} className="h-12 text-center text-muted-foreground">
+                      <div className="flex items-center justify-center gap-2">
+                        <Clock className="h-4 w-4 animate-spin" />
+                        Loading ping data...
+                      </div>
+                    </TableCell>
                   </TableRow>
                 ))
               ) : recentPings.length === 0 ? (
                 <TableRow>
-                  <TableCell colSpan={5} className="h-24 text-center text-muted-foreground">No recent pings found.</TableCell>
+                  <TableCell colSpan={5} className="h-24 text-center text-muted-foreground">No recent pings found in 'pings' collection.</TableCell>
                 </TableRow>
               ) : (
                 recentPings.map((ping) => (
@@ -409,40 +414,6 @@ export default function AdminDashboardPage() {
           </CardContent>
         </Card>
       </div>
-
-      {/* Recent Activity (Summary) */}
-      <Card className="border-border bg-card/40 backdrop-blur">
-        <CardHeader>
-          <div className="flex items-center justify-between">
-            <div>
-              <CardTitle className="text-xl">System Status</CardTitle>
-              <CardDescription>Latest system-wide events and performance</CardDescription>
-            </div>
-            <Activity className="h-5 w-5 text-muted-foreground" />
-          </div>
-        </CardHeader>
-        <CardContent>
-          <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-4">
-            {[
-              { title: "New Seller Approved", time: "2 minutes ago", detail: "Gadget World", icon: TrendingUp, color: "text-emerald-500" },
-              { title: "Subscription Renewed", time: "15 minutes ago", detail: "Premium User #129", icon: CreditCard, color: "text-primary" },
-              { title: "High Value Order", time: "45 minutes ago", detail: "Transaction $1,200", icon: DollarSign, color: "text-accent" },
-              { title: "System Health", time: "All OK", detail: "Latency: 45ms", icon: Clock, color: "text-muted-foreground" },
-            ].map((activity, i) => (
-              <div key={i} className="flex items-start gap-4 p-4 rounded-xl hover:bg-muted/50 transition-colors">
-                <div className={`p-2 rounded-lg bg-muted/50 ${activity.color}`}>
-                  <activity.icon className="h-4 w-4" />
-                </div>
-                <div className="flex-1 min-w-0">
-                  <p className="text-sm font-semibold truncate">{activity.title}</p>
-                  <p className="text-xs text-muted-foreground truncate">{activity.detail}</p>
-                  <p className="text-[10px] text-muted-foreground/60 mt-1 uppercase font-bold">{activity.time}</p>
-                </div>
-              </div>
-            ))}
-          </div>
-        </CardContent>
-      </Card>
     </div>
   );
 }
