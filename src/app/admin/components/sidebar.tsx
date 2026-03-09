@@ -1,4 +1,3 @@
-
 "use client";
 
 import Link from "next/link";
@@ -11,7 +10,8 @@ import {
   Package, 
   ShieldCheck,
   ChevronRight,
-  ClockAlert
+  ClockAlert,
+  Zap
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 
@@ -22,6 +22,7 @@ const navItems = [
   { label: "Pending Shops", href: "/admin/shops/pending", icon: ClockAlert },
   { label: "Subscriptions", href: "/admin/subscriptions", icon: CreditCard },
   { label: "Products", href: "/admin/products", icon: Package },
+  { label: "Pings", href: "/admin/pings", icon: Zap },
 ];
 
 export function AdminSidebar() {
