@@ -104,10 +104,12 @@ export default function PingsManagementPage() {
       const buyerName = resolvedData.users[ping.buyerId] || "";
       const shopName = resolvedData.shops[ping.sellerId] || "";
       const productName = resolvedData.products[ping.productId]?.name || "";
+      const status = ping.status || "";
+      const pingId = ping.id || "";
       
       return (
-        ping.id.toLowerCase().includes(searchTerm.toLowerCase()) ||
-        ping.status.toLowerCase().includes(searchTerm.toLowerCase()) ||
+        pingId.toLowerCase().includes(searchTerm.toLowerCase()) ||
+        status.toLowerCase().includes(searchTerm.toLowerCase()) ||
         buyerName.toLowerCase().includes(searchTerm.toLowerCase()) ||
         shopName.toLowerCase().includes(searchTerm.toLowerCase()) ||
         productName.toLowerCase().includes(searchTerm.toLowerCase())
@@ -127,13 +129,13 @@ export default function PingsManagementPage() {
   };
 
   const getStatusBadge = (status: string) => {
-    const s = status.toLowerCase().trim();
+    const s = (status || "").toLowerCase().trim();
     if (s === 'successful' || s === 'completed' || s === 'success') return <Badge className="bg-emerald-500/10 text-emerald-500 border-emerald-500/20">Successful</Badge>;
     if (s === 'pending') return <Badge variant="secondary" className="bg-amber-500/10 text-amber-500 border-amber-500/20">Pending</Badge>;
     if (s === 'confirmed') return <Badge className="bg-blue-500/10 text-blue-500 border-blue-500/20">Confirmed</Badge>;
     if (s === 'cancelled') return <Badge variant="destructive" className="bg-destructive/10 text-destructive border-destructive/20">Cancelled</Badge>;
     if (s === 'expired') return <Badge variant="outline" className="bg-slate-500/10 text-slate-500 border-slate-500/20">Expired</Badge>;
-    return <Badge variant="outline">{status}</Badge>;
+    return <Badge variant="outline">{status || "Unknown"}</Badge>;
   };
 
   if (loading) {
@@ -184,7 +186,7 @@ export default function PingsManagementPage() {
             <CardDescription className="text-xs uppercase font-bold tracking-wider">Success Rate</CardDescription>
             <CardTitle className="text-3xl text-emerald-500">
               {pings.length > 0 
-                ? `${((pings.filter(p => ['successful', 'completed', 'success'].includes(p.status.toLowerCase())).length / pings.length) * 100).toFixed(1)}%`
+                ? `${((pings.filter(p => ['successful', 'completed', 'success'].includes((p.status || "").toLowerCase())).length / pings.length) * 100).toFixed(1)}%`
                 : "0%"}
             </CardTitle>
           </CardHeader>
@@ -262,7 +264,9 @@ export default function PingsManagementPage() {
                           <ShoppingCart className="h-3 w-3 text-primary/60" />
                           <div className="flex flex-col">
                             <span className="font-semibold text-sm truncate max-w-[150px]">{productInfo.name}</span>
-                            <span className="text-[10px] text-muted-foreground font-mono">{ping.productId.slice(0, 8)}...</span>
+                            <span className="text-[10px] text-muted-foreground font-mono">
+                              {ping.productId ? `${ping.productId.slice(0, 8)}...` : "N/A"}
+                            </span>
                           </div>
                         </div>
                       </TableCell>
