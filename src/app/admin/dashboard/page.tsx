@@ -8,20 +8,19 @@ import { StatCard } from "../components/stat-card";
 import { 
   Users, 
   Store, 
-  CreditCard, 
   Package, 
   DollarSign,
   Zap,
   LayoutGrid,
   Activity,
-  ArrowUpRight,
   TrendingUp,
   BarChart3,
-  Clock
+  Clock,
+  CreditCard
 } from "lucide-react";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { ChartContainer, ChartTooltip, ChartTooltipContent } from "@/components/ui/chart";
-import { Bar, BarChart, XAxis, YAxis, ResponsiveContainer } from "recharts";
+import { Bar, BarChart, XAxis, YAxis } from "recharts";
 
 const chartData = [
   { month: "Jan", users: 1200, revenue: 4500 },
@@ -71,12 +70,13 @@ export default function AdminDashboardPage() {
       try {
         setLoading(true);
         
-        // Fetch core entities
+        // Fetch core entities - sellerSubscriptions is temporarily commented out
         const [usersSnap, shopsSnap, productsSnap, pingsSnap] = await Promise.all([
           getDocs(collection(db, "users")),
           getDocs(collection(db, "shops")),
           getDocs(collection(db, "products")),
-          getDocs(collection(db, "pings"))
+          getDocs(collection(db, "pings")),
+          // getDocs(collection(db, "sellerSubscriptions")) // Temporarily commented out
         ]);
 
         setTotalUsers(usersSnap.size);
