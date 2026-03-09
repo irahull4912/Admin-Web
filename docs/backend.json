@@ -93,10 +93,18 @@
           "type": "string",
           "description": "The official name of the seller's shop or business."
         },
+        "ownerName": {
+          "type": "string",
+          "description": "The full name of the shop owner."
+        },
         "contactEmail": {
           "type": "string",
           "description": "The primary contact email address for the seller's shop.",
           "format": "email"
+        },
+        "contactNumber": {
+          "type": "string",
+          "description": "Primary phone number for the shop."
         },
         "registrationDate": {
           "type": "string",
@@ -105,11 +113,20 @@
         },
         "status": {
           "type": "string",
-          "description": "The current approval status of the seller's shop (e.g., 'Pending Approval', 'Active', 'Trial', 'Suspended', 'Rejected')."
+          "description": "The current approval status of the seller's shop (e.g., 'pending', 'active', 'rejected', 'suspended')."
         },
         "description": {
           "type": "string",
           "description": "A brief description of the seller's shop or business."
+        },
+        "shopPhotos": {
+          "type": "array",
+          "items": { "type": "string" },
+          "description": "A list of URLs for shop images."
+        },
+        "location": {
+          "type": "string",
+          "description": "Physical address or coordinates of the shop."
         }
       },
       "required": [

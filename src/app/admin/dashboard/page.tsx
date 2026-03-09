@@ -8,10 +8,13 @@ import {
   getDoc,
   doc,
   query, 
+  where,
   orderBy, 
   limit, 
   Timestamp, 
-  collectionGroup 
+  collectionGroup,
+  onSnapshot,
+  updateDoc
 } from "firebase/firestore";
 import { db } from "@/lib/firebase";
 import { StatCard } from "../components/stat-card";
@@ -22,7 +25,13 @@ import {
   Zap,
   Activity,
   Clock,
-  ShieldAlert
+  ShieldAlert,
+  Store,
+  CheckCircle2,
+  XCircle,
+  MapPin,
+  Phone,
+  Info
 } from "lucide-react";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { 
@@ -34,7 +43,20 @@ import {
   TableRow 
 } from "@/components/ui/table";
 import { Badge } from "@/components/ui/badge";
+import { Button } from "@/components/ui/button";
+import { 
+  Dialog, 
+  DialogContent, 
+  DialogDescription, 
+  DialogFooter, 
+  DialogHeader, 
+  DialogTitle, 
+  DialogTrigger 
+} from "@/components/ui/dialog";
 import { format } from "date-fns";
+import { errorEmitter } from "@/firebase/error-emitter";
+import { FirestorePermissionError } from "@/firebase/errors";
+import Image from "next/image";
 
 interface PingRecord {
   id: string;
@@ -48,6 +70,18 @@ interface PingRecord {
   amount: number;
 }
 
+interface PendingShop {
+  id: string;
+  name: string;
+  ownerName?: string;
+  contactEmail: string;
+  contactNumber?: string;
+  location?: string;
+  shopPhotos?: string[];
+  status: string;
+  registrationDate: any;
+}
+
 export default function AdminDashboardPage() {
   const [loading, setLoading] = useState(true);
   const [totalUsers, setTotalUsers] = useState(0);
@@ -55,6 +89,8 @@ export default function AdminDashboardPage() {
   const [totalRevenue, setTotalRevenue] = useState(0);
   const [totalPings, setTotalPings] = useState(0);
   const [recentPings, setRecentPings] = useState<PingRecord[]>([]);
+  const [pendingShops, setPendingShops] = useState<PendingShop[]>([]);
+  const [selectedShop, setSelectedShop] = useState<PendingShop | null>(null);
 
   // Ping statuses
   const [pingStats, setPingStats] = useState({
@@ -66,29 +102,25 @@ export default function AdminDashboardPage() {
   });
 
   useEffect(() => {
+    // Real-time listener for pending shops
+    const shopsQuery = query(collection(db, "shops"), where("status", "==", "pending"));
+    const unsubscribeShops = onSnapshot(shopsQuery, (snapshot) => {
+      const shops = snapshot.docs.map(doc => ({
+        id: doc.id,
+        ...doc.data()
+      })) as PendingShop[];
+      setPendingShops(shops);
+    });
+
     async function fetchDashboardData() {
       try {
         setLoading(true);
         
-        // 1. Direct Debug Check for specific document
-        try {
-          const directPingRef = doc(db, "pings", "yurRTVAC4VmO3nXCXImP");
-          const directPingSnap = await getDoc(directPingRef);
-          if (directPingSnap.exists()) {
-            console.log("DEBUG: Direct Ping Fetch SUCCESS:", directPingSnap.data());
-          }
-        } catch (debugError) {
-          console.error("DEBUG: Direct Ping Fetch Error:", debugError);
-        }
-
-        // 2. Fetch core entities
+        // 1. Fetch core entities
         const [usersSnap, productsSnap] = await Promise.all([
           getDocs(collection(db, "users")),
           getDocs(collectionGroup(db, "products")), 
         ]);
-
-        console.log(`DEBUG: Raw Users Count: ${usersSnap.size}`);
-        console.log(`DEBUG: Raw Products Count: ${productsSnap.size}`);
 
         setTotalUsers(usersSnap.size);
         setTotalProducts(productsSnap.size);
@@ -106,19 +138,11 @@ export default function AdminDashboardPage() {
           productMap.set(doc.id, data.name || "Unknown Product");
         });
 
-        // 3. Fetch Pings
+        // 2. Fetch Pings (strictly using createdAt as per requirements)
         try {
           let pingsSnap;
-          try {
-            // Using createdAt as requested - do not revert to 'timestamp'
-            const pingsQuery = query(collection(db, "pings"), orderBy("createdAt", "desc"), limit(50));
-            pingsSnap = await getDocs(pingsQuery);
-            console.log(`DEBUG: Indexed Pings Count (createdAt): ${pingsSnap.size}`);
-          } catch (e) {
-            console.warn("Falling back to unindexed fetch for pings. Index might be missing for 'createdAt'.", e);
-            pingsSnap = await getDocs(collection(db, "pings"));
-            console.log(`DEBUG: Unindexed Pings Count: ${pingsSnap.size}`);
-          }
+          const pingsQuery = query(collection(db, "pings"), orderBy("createdAt", "desc"), limit(50));
+          pingsSnap = await getDocs(pingsQuery);
           
           let revenue = 0;
           const pings: PingRecord[] = [];
@@ -130,7 +154,7 @@ export default function AdminDashboardPage() {
             const data = doc.data();
             const amount = data.amount || data.total || 0;
             
-            // Normalize status for counting - robust lowercase pending check
+            // Normalize status for counting (robust lowercase pending check)
             const rawStatus = (data.status || 'pending').toString().toLowerCase().trim();
             
             if (rawStatus === 'pending') {
@@ -159,8 +183,6 @@ export default function AdminDashboardPage() {
             });
           });
 
-          console.log("DEBUG: Processed Ping Stats:", stats);
-
           setTotalRevenue(revenue);
           setPingStats(stats);
           setRecentPings(pings);
@@ -176,7 +198,22 @@ export default function AdminDashboardPage() {
     }
 
     fetchDashboardData();
+    return () => unsubscribeShops();
   }, []);
+
+  const handleUpdateShopStatus = (shopId: string, newStatus: string) => {
+    const docRef = doc(db, "shops", shopId);
+    updateDoc(docRef, { status: newStatus })
+      .catch(async (e) => {
+        const permissionError = new FirestorePermissionError({
+          path: docRef.path,
+          operation: 'update',
+          requestResourceData: { status: newStatus }
+        });
+        errorEmitter.emit('permission-error', permissionError);
+      });
+    setSelectedShop(null);
+  };
 
   const formatPingDate = (createdAt: any) => {
     if (!createdAt) return "N/A";
@@ -264,69 +301,178 @@ export default function AdminDashboardPage() {
         ))}
       </div>
 
-      <Card className="border-border bg-card/40 backdrop-blur overflow-hidden">
-        <CardHeader>
-          <div className="flex items-center justify-between">
-            <div>
-              <CardTitle className="text-xl">Recent Pings</CardTitle>
-              <CardDescription>Real-time view of latest transactions across the platform.</CardDescription>
+      <div className="grid gap-6 md:grid-cols-2">
+        {/* Recent Pings */}
+        <Card className="border-border bg-card/40 backdrop-blur overflow-hidden">
+          <CardHeader>
+            <div className="flex items-center justify-between">
+              <div>
+                <CardTitle className="text-xl">Recent Pings</CardTitle>
+                <CardDescription>Latest transactions across the platform.</CardDescription>
+              </div>
+              <Activity className="h-5 w-5 text-muted-foreground" />
             </div>
-            <Activity className="h-5 w-5 text-muted-foreground" />
-          </div>
-        </CardHeader>
-        <CardContent className="p-0">
-          <Table>
-            <TableHeader className="bg-muted/30">
-              <TableRow>
-                <TableHead className="w-[180px]">Date & Time</TableHead>
-                <TableHead>Sender Name (ID)</TableHead>
-                <TableHead>Receiver ID</TableHead>
-                <TableHead>Product Name</TableHead>
-                <TableHead className="text-right">Status</TableHead>
-              </TableRow>
-            </TableHeader>
-            <TableBody>
-              {loading ? (
-                Array.from({ length: 5 }).map((_, i) => (
-                  <TableRow key={i}>
-                    <TableCell colSpan={5} className="h-12 text-center text-muted-foreground">Loading...</TableCell>
-                  </TableRow>
-                ))
-              ) : recentPings.length === 0 ? (
+          </CardHeader>
+          <CardContent className="p-0">
+            <Table>
+              <TableHeader className="bg-muted/30">
                 <TableRow>
-                  <TableCell colSpan={5} className="h-24 text-center text-muted-foreground">No transactions found.</TableCell>
+                  <TableHead>Date & Time</TableHead>
+                  <TableHead>Sender</TableHead>
+                  <TableHead className="text-right">Status</TableHead>
                 </TableRow>
-              ) : (
-                recentPings.map((ping) => (
-                  <TableRow key={ping.id} className="hover:bg-muted/20 transition-colors">
-                    <TableCell className="text-xs font-medium text-muted-foreground">
-                      <div className="flex items-center gap-2">
-                        <Clock className="h-3 w-3" />
-                        {formatPingDate(ping.createdAt)}
-                      </div>
-                    </TableCell>
-                    <TableCell>
-                      <div className="flex flex-col">
-                        <span className="font-semibold">{ping.senderName}</span>
-                        <span className="text-[10px] text-muted-foreground font-mono">{ping.buyerId}</span>
-                      </div>
-                    </TableCell>
-                    <TableCell className="text-[10px] text-muted-foreground font-mono">
-                      {ping.sellerId}
-                    </TableCell>
-                    <TableCell className="font-medium max-w-[200px] truncate">
-                      {ping.productName}
-                    </TableCell>
-                    <TableCell className="text-right">
-                      {getStatusBadge(ping.status)}
-                    </TableCell>
+              </TableHeader>
+              <TableBody>
+                {loading ? (
+                  Array.from({ length: 5 }).map((_, i) => (
+                    <TableRow key={i}>
+                      <TableCell colSpan={3} className="h-12 text-center text-muted-foreground">Loading...</TableCell>
+                    </TableRow>
+                  ))
+                ) : recentPings.length === 0 ? (
+                  <TableRow>
+                    <TableCell colSpan={3} className="h-24 text-center text-muted-foreground">No transactions found.</TableCell>
                   </TableRow>
-                ))
-              )}
-            </TableBody>
-          </Table>
-        </CardContent>
-      </Card>
+                ) : (
+                  recentPings.map((ping) => (
+                    <TableRow key={ping.id} className="hover:bg-muted/20 transition-colors">
+                      <TableCell className="text-xs font-medium text-muted-foreground">
+                        {formatPingDate(ping.createdAt)}
+                      </TableCell>
+                      <TableCell className="font-semibold">{ping.senderName}</TableCell>
+                      <TableCell className="text-right">
+                        {getStatusBadge(ping.status)}
+                      </TableCell>
+                    </TableRow>
+                  ))
+                )}
+              </TableBody>
+            </Table>
+          </CardContent>
+        </Card>
+
+        {/* Shop Approvals */}
+        <Card className="border-border bg-card/40 backdrop-blur overflow-hidden">
+          <CardHeader>
+            <div className="flex items-center justify-between">
+              <div>
+                <CardTitle className="text-xl">Shop Approvals</CardTitle>
+                <CardDescription>Manage new merchant registrations.</CardDescription>
+              </div>
+              <Store className="h-5 w-5 text-primary" />
+            </div>
+          </CardHeader>
+          <CardContent className="p-0">
+            <Table>
+              <TableHeader className="bg-muted/30">
+                <TableRow>
+                  <TableHead>Shop Name</TableHead>
+                  <TableHead>Owner Name</TableHead>
+                  <TableHead className="text-right">Action</TableHead>
+                </TableRow>
+              </TableHeader>
+              <TableBody>
+                {pendingShops.length === 0 ? (
+                  <TableRow>
+                    <TableCell colSpan={3} className="h-24 text-center text-muted-foreground">No pending approvals.</TableCell>
+                  </TableRow>
+                ) : (
+                  pendingShops.map((shop) => (
+                    <TableRow key={shop.id} className="hover:bg-muted/20 transition-colors">
+                      <TableCell className="font-semibold">{shop.name}</TableCell>
+                      <TableCell>{shop.ownerName || "N/A"}</TableCell>
+                      <TableCell className="text-right">
+                        <Dialog>
+                          <DialogTrigger asChild>
+                            <Button 
+                              variant="ghost" 
+                              size="sm" 
+                              onClick={() => setSelectedShop(shop)}
+                              className="text-primary hover:text-primary hover:bg-primary/10"
+                            >
+                              <Info className="h-4 w-4 mr-1.5" />
+                              Details
+                            </Button>
+                          </DialogTrigger>
+                          <DialogContent className="sm:max-w-[500px]">
+                            <DialogHeader>
+                              <DialogTitle className="text-2xl font-bold">{shop.name}</DialogTitle>
+                              <DialogDescription>Review registration details for this merchant.</DialogDescription>
+                            </DialogHeader>
+                            
+                            <div className="space-y-6 py-4">
+                              <div className="grid grid-cols-2 gap-4">
+                                <div className="space-y-1">
+                                  <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">Owner Name</p>
+                                  <p className="font-medium">{shop.ownerName || "N/A"}</p>
+                                </div>
+                                <div className="space-y-1">
+                                  <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">Contact Phone</p>
+                                  <div className="flex items-center gap-1.5 font-medium">
+                                    <Phone className="h-3.5 w-3.5 text-primary" />
+                                    {shop.contactNumber || "N/A"}
+                                  </div>
+                                </div>
+                                <div className="space-y-1 col-span-2">
+                                  <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">Location</p>
+                                  <div className="flex items-center gap-1.5 font-medium">
+                                    <MapPin className="h-3.5 w-3.5 text-primary" />
+                                    {shop.location || "N/A"}
+                                  </div>
+                                </div>
+                              </div>
+
+                              <div className="space-y-2">
+                                <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">Shop Photos</p>
+                                {shop.shopPhotos && shop.shopPhotos.length > 0 ? (
+                                  <div className="grid grid-cols-3 gap-2">
+                                    {shop.shopPhotos.map((photo, i) => (
+                                      <div key={i} className="relative aspect-square rounded-md overflow-hidden border">
+                                        <Image 
+                                          src={photo} 
+                                          alt={`Shop preview ${i+1}`} 
+                                          fill 
+                                          className="object-cover"
+                                        />
+                                      </div>
+                                    ))}
+                                  </div>
+                                ) : (
+                                  <div className="h-24 bg-muted/50 rounded-md flex items-center justify-center border border-dashed">
+                                    <p className="text-xs text-muted-foreground italic">No photos uploaded</p>
+                                  </div>
+                                )}
+                              </div>
+                            </div>
+
+                            <DialogFooter className="gap-2 sm:gap-0">
+                              <Button 
+                                variant="outline" 
+                                onClick={() => handleUpdateShopStatus(shop.id, 'rejected')}
+                                className="flex-1 sm:flex-none text-destructive border-destructive/20 hover:bg-destructive/10 hover:text-destructive"
+                              >
+                                <XCircle className="h-4 w-4 mr-2" />
+                                Reject
+                              </Button>
+                              <Button 
+                                onClick={() => handleUpdateShopStatus(shop.id, 'active')}
+                                className="flex-1 sm:flex-none bg-emerald-600 hover:bg-emerald-700 text-white"
+                              >
+                                <CheckCircle2 className="h-4 w-4 mr-2" />
+                                Approve
+                              </Button>
+                            </DialogFooter>
+                          </DialogContent>
+                        </Dialog>
+                      </TableCell>
+                    </TableRow>
+                  ))
+                )}
+              </TableBody>
+            </Table>
+          </CardContent>
+        </Card>
+      </div>
     </div>
   );
 }
