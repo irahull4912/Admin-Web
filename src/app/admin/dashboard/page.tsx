@@ -195,7 +195,7 @@ export default function AdminDashboardPage() {
         </div>
       </div>
 
-      <div className="grid gap-6 sm:grid-cols-2 lg:grid-cols-4">
+      <div className="grid gap-6 sm:grid-cols-2 lg:grid-cols-3">
         <StatCard 
           label="Total Revenue" 
           value={loading ? "..." : `$${totalRevenue.toLocaleString()}`} 
@@ -208,13 +208,6 @@ export default function AdminDashboardPage() {
           value={loading ? "..." : totalProducts.toLocaleString()} 
           icon={Package} 
           trend="+8.4%" 
-          trendType="positive"
-        />
-        <StatCard 
-          label="Total Sellers" 
-          value={loading ? "..." : totalSellers.toLocaleString()} 
-          icon={Store} 
-          trend="+5.2%" 
           trendType="positive"
         />
         <StatCard 
