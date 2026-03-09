@@ -10,7 +10,8 @@ import {
   CreditCard, 
   Package, 
   ShieldCheck,
-  ChevronRight
+  ChevronRight,
+  ClockAlert
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 
@@ -18,6 +19,7 @@ const navItems = [
   { label: "Dashboard", href: "/admin/dashboard", icon: LayoutDashboard },
   { label: "Users", href: "/admin/users", icon: Users },
   { label: "Sellers", href: "/admin/sellers", icon: Store },
+  { label: "Pending Shops", href: "/admin/shops/pending", icon: ClockAlert },
   { label: "Subscriptions", href: "/admin/subscriptions", icon: CreditCard },
   { label: "Products", href: "/admin/products", icon: Package },
 ];

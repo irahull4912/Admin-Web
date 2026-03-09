@@ -83,15 +83,15 @@
       "$schema": "http://json-schema.org/draft-07/schema#",
       "title": "Seller",
       "type": "object",
-      "description": "Represents a registered shop or business on the platform, managed by administrators.",
+      "description": "Represents a registered shop or business on the platform.",
       "properties": {
         "id": {
           "type": "string",
-          "description": "Unique identifier for the Seller entity (shop/business)."
+          "description": "Unique identifier for the Seller entity."
         },
         "name": {
           "type": "string",
-          "description": "The official name of the seller's shop or business."
+          "description": "The official name of the seller's shop."
         },
         "ownerName": {
           "type": "string",
@@ -99,7 +99,7 @@
         },
         "contactEmail": {
           "type": "string",
-          "description": "The primary contact email address for the seller's shop.",
+          "description": "The primary contact email address.",
           "format": "email"
         },
         "contactNumber": {
@@ -108,30 +108,37 @@
         },
         "registrationDate": {
           "type": "string",
-          "description": "Timestamp when the seller registered their shop on the platform.",
+          "description": "Timestamp when the seller registered.",
           "format": "date-time"
         },
         "status": {
           "type": "string",
-          "description": "The current approval status of the seller's shop (e.g., 'pending', 'active', 'rejected', 'suspended')."
+          "description": "Current status of the shop.",
+          "enum": ["pending", "approved", "rejected", "active", "suspended"]
         },
         "description": {
           "type": "string",
-          "description": "A brief description of the seller's shop or business."
+          "description": "A brief description of the shop."
         },
-        "shopPhotos": {
-          "type": "array",
-          "items": { "type": "string" },
-          "description": "A list of URLs for shop images."
+        "imageUrl": {
+          "type": "string",
+          "description": "Main URL for the shop image."
         },
         "location": {
-          "type": "string",
-          "description": "Physical address or coordinates of the shop."
+          "type": "object",
+          "description": "Geographical and address information for the shop.",
+          "properties": {
+            "latitude": { "type": "number" },
+            "longitude": { "type": "number" },
+            "city": { "type": "string" },
+            "street": { "type": "string" }
+          }
         }
       },
       "required": [
         "id",
         "name",
+        "ownerName",
         "contactEmail",
         "registrationDate",
         "status"
