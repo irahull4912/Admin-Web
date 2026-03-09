@@ -1,158 +1,64 @@
+
 rules_version = '2';
 service cloud.firestore {
   match /databases/{database}/documents {
 
-    /**
-     * AdminVault Security Rules Philosophy
-     * 
-     * Core Philosophy:
-     * This ruleset implements a dual-access model: User-Ownership and Administrative Override. 
-     * Authentication is strictly required for all data access. Users have full control over their 
-     * personal profile, purchase history, and subscriptions. Sellers manage their own shop profiles 
-     * and products. Administrators, verified via the /adminUsers collection, are granted 
-     * broad management privileges across all data entities to facilitate the "Admin Panel" features.
-     * 
-     * Data Structure:
-     * - /adminUsers: DBAC (Database Access Control) profiles for administrative accounts.
-     * - /users/{userId}: User profiles with nested /purchases and /subscriptions.
-     * - /sellers/{sellerId}: Seller profiles with nested /products and /subscriptions.
-     * 
-     * Key Security Decisions:
-     * 1. DBAC Pattern: Administrative rights are derived from the existence of a document 
-     *    in the /adminUsers collection matching the user's Auth UID.
-     * 2. Relational Integrity: On document creation, the rules enforce that internal 
-     *    ownership fields (e.g., userId, sellerId) match the resource path variables.
-     * 3. Immutability: Critical relationship links (like an owner's ID) are made immutable 
-     *    on update to prevent data hijacking.
-     * 4. Structural Segregation: Subscriptions are segregated by owner type (User vs. Seller) 
-     *    into specific subcollections to simplify path-based authorization.
-     * 
-     * Denormalization for Authorization:
-     * To ensure high performance and avoid complex joins, documents include redundant 
-     * ownership fields (like 'subscriberId') that directly correspond to the path variables.
-     */
-
     // --- Helper Functions ---
-
-    /** Checks if the request is from an authenticated user. */
     function isSignedIn() {
       return request.auth != null;
     }
 
-    /** Checks if the authenticated user has an entry in the adminUsers collection. */
     function isAdmin() {
       return isSignedIn() && exists(/databases/$(database)/documents/adminUsers/$(request.auth.uid));
     }
 
-    /** Checks if the authenticated user's UID matches the provided ID. */
     function isOwner(userId) {
       return isSignedIn() && request.auth.uid == userId;
     }
 
-    // The 'isExistingOwner' function was removed because it was unused and contained an invalid reference to 'resource'.
-
     // --- Collection Rules ---
 
-    /**
-     * @description Rules for Administrator profiles used for access control.
-     * @path /adminUsers/{adminId}
-     * @allow (get) Any signed-in user can get an admin profile (for role checks).
-     * @deny (list) Only existing administrators can list all admin accounts.
-     * @principle Database Access Control (DBAC) source of truth.
-     */
     match /adminUsers/{adminId} {
       allow get: if isSignedIn();
-      allow list: if isAdmin();
-      allow create: if isOwner(adminId) || isAdmin();
-      allow update: if (isOwner(adminId) || isAdmin()) && resource != null;
-      allow delete: if isAdmin() && resource != null;
+      allow list, write: if isAdmin();
     }
 
-    /**
-     * @description Rules for general User profiles.
-     * @path /users/{userId}
-     * @allow (create) A user can create their own profile if the ID matches their UID.
-     * @deny (update) Users cannot change their own status; only admins can suspend users.
-     * @principle Path-based ownership combined with admin management.
-     */
     match /users/{userId} {
       allow get: if isOwner(userId) || isAdmin();
       allow list: if isAdmin();
-      allow create: if isOwner(userId) && request.resource.data.id == userId;
-      allow update: if (isOwner(userId) || isAdmin()) && resource != null;
-      allow delete: if isAdmin() && resource != null;
-
-      /**
-       * @description User purchase records.
-       * @path /users/{userId}/purchases/{purchaseId}
-       * @allow (list) An admin viewing a user's purchase history.
-       * @principle Relational integrity enforced by matching userId to path.
-       */
-      match /purchases/{purchaseId} {
-        allow get, list: if isOwner(userId) || isAdmin();
-        allow create: if isOwner(userId) && request.resource.data.userId == userId;
-        allow update: if isAdmin() && resource != null;
-        allow delete: if isAdmin() && resource != null;
-      }
-
-      /**
-       * @description User subscription details.
-       * @path /users/{userId}/subscriptions/{subscriptionId}
-       * @allow (get) A user viewing their own subscription tier.
-       * @principle Structural segregation of user and seller subscriptions.
-       */
-      match /subscriptions/{subscriptionId} {
-        allow get, list: if isOwner(userId) || isAdmin();
-        allow create: if isAdmin() || (isOwner(userId) && request.resource.data.subscriberId == userId);
-        allow update, delete: if isAdmin() && resource != null;
-      }
+      allow create: if isOwner(userId);
+      allow update: if isOwner(userId) || isAdmin();
     }
 
-    /**
-     * @description Seller (Shop) profiles.
-     * @path /sellers/{sellerId}
-     * @allow (update) Admin approving or suspending a shop.
-     * @deny (list) Anonymous users listing all registered shops.
-     * @principle Centralized seller management for administrators.
-     */
-    match /sellers/{sellerId} {
+    // Support for both 'shops' and 'sellers' path names if needed, but 'shops' is preferred per user request
+    match /shops/{shopId} {
       allow get: if isSignedIn();
-      allow list: if isAdmin();
-      allow create: if isAdmin() || (isOwner(sellerId) && request.resource.data.id == sellerId);
-      allow update: if (isAdmin() || isOwner(sellerId)) && resource != null;
-      allow delete: if isAdmin() && resource != null;
-
-      /**
-       * @description Products owned by a specific seller.
-       * @path /sellers/{sellerId}/products/{productId}
-       * @allow (create) A seller adding a new product to their shop.
-       * @principle Owner-managed content with admin oversight.
-       */
+      allow list, write: if isAdmin() || isOwner(shopId);
+      
       match /products/{productId} {
         allow get, list: if isSignedIn();
-        allow create: if (isOwner(sellerId) || isAdmin()) && request.resource.data.sellerId == sellerId;
-        allow update: if (isOwner(sellerId) || isAdmin()) && resource != null && request.resource.data.sellerId == resource.data.sellerId;
-        allow delete: if (isOwner(sellerId) || isAdmin()) && resource != null;
-      }
-
-      /**
-       * @description Seller subscription tracking (Trial status, End dates).
-       * @path /sellers/{sellerId}/subscriptions/{subscriptionId}
-       * @allow (list) Admin tracking all trial subscriptions.
-       * @principle Denormalized subscriberId for authorization independence.
-       */
-      match /subscriptions/{subscriptionId} {
-        allow get, list: if isOwner(sellerId) || isAdmin();
-        allow create: if isAdmin() || (isOwner(sellerId) && request.resource.data.subscriberId == sellerId);
-        allow update, delete: if isAdmin() && resource != null;
+        allow write: if isAdmin() || isOwner(shopId);
       }
     }
 
-    /**
-     * @description Global access for Subscriptions via Collection Groups.
-     * This enables Admin tracking across all user and seller subscriptions.
-     */
+    match /pings/{pingId} {
+      allow get, list: if isAdmin();
+      allow create: if isSignedIn();
+      allow update: if isAdmin();
+    }
+
+    // --- Collection Group Rules ---
+    // Critical for dashboard metrics and unified views
+    
+    match /{path=**}/products/{productId} {
+      allow list: if isAdmin() || isSignedIn();
+    }
+
     match /{path=**}/subscriptions/{subscriptionId} {
+      allow list: if isAdmin();
+    }
+
+    match /{path=**}/purchases/{purchaseId} {
       allow list: if isAdmin();
     }
   }

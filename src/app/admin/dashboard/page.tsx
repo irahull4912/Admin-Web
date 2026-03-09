@@ -16,7 +16,6 @@ import {
   TrendingUp,
   BarChart3,
   Clock,
-  CreditCard,
   Search
 } from "lucide-react";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
@@ -96,7 +95,6 @@ export default function AdminDashboardPage() {
         console.log("Fetching core dashboard data...");
         
         // Fetch core entities
-        // Note: products and shops might be nested, using collectionGroup for products per backend.json
         const [usersSnap, shopsSnap, productsSnap] = await Promise.all([
           getDocs(collection(db, "users")),
           getDocs(collection(db, "shops")),
@@ -109,19 +107,17 @@ export default function AdminDashboardPage() {
         setTotalSellers(shopsSnap.size);
         setTotalProducts(productsSnap.size);
 
-        // Build lookup maps for names to avoid nested fetches in the ping loop
+        // Build lookup maps
         const userMap = new Map();
         usersSnap.forEach(doc => userMap.set(doc.id, doc.data().name || doc.data().email || "Unknown User"));
 
         const productMap = new Map();
         productsSnap.forEach(doc => productMap.set(doc.id, doc.data().name || "Unknown Product"));
 
-        // Fetch Pings (uncommented as requested)
+        // Fetch Pings
         try {
-          console.log("Fetching pings collection...");
           const pingsQuery = query(collection(db, "pings"), orderBy("timestamp", "desc"), limit(50));
           const pingsSnap = await getDocs(pingsQuery);
-          console.log(`Pings found: ${pingsSnap.size}`);
           
           let revenue = 0;
           const pings: PingRecord[] = [];
@@ -157,10 +153,10 @@ export default function AdminDashboardPage() {
           setPingStats(stats);
           setRecentPings(pings);
         } catch (pingError) {
-          console.error("Error fetching pings collection:", pingError);
+          console.error("Error fetching pings:", pingError);
         }
 
-        // Calculate Category Stats from 'products'
+        // Calculate Category Stats
         const cats = { fashionApparel: 0, fashionFootwear: 0, kidsApparel: 0, kidsFootwear: 0 };
         productsSnap.forEach(doc => {
           const data = doc.data();
@@ -178,7 +174,7 @@ export default function AdminDashboardPage() {
         setCategoryStats(cats);
 
       } catch (error) {
-        console.error("General error fetching dashboard data:", error);
+        console.error("General dashboard error:", error);
       } finally {
         setLoading(false);
       }
@@ -219,7 +215,6 @@ export default function AdminDashboardPage() {
         </div>
       </div>
 
-      {/* Primary Stats */}
       <div className="grid gap-6 sm:grid-cols-2 lg:grid-cols-4">
         <StatCard 
           label="Total Revenue" 
@@ -251,7 +246,6 @@ export default function AdminDashboardPage() {
         />
       </div>
 
-      {/* Ping Status Grid */}
       <div className="grid gap-4 grid-cols-2 md:grid-cols-4">
         {[
           { label: "Successful", value: pingStats.successful, color: "text-emerald-500", bg: "bg-emerald-500/10" },
@@ -271,7 +265,6 @@ export default function AdminDashboardPage() {
         ))}
       </div>
 
-      {/* Recent Pings Table */}
       <Card className="border-border bg-card/40 backdrop-blur overflow-hidden">
         <CardHeader>
           <div className="flex items-center justify-between">
@@ -297,17 +290,12 @@ export default function AdminDashboardPage() {
               {loading ? (
                 Array.from({ length: 5 }).map((_, i) => (
                   <TableRow key={i}>
-                    <TableCell colSpan={5} className="h-12 text-center text-muted-foreground">
-                      <div className="flex items-center justify-center gap-2">
-                        <Clock className="h-4 w-4 animate-spin" />
-                        Loading ping data...
-                      </div>
-                    </TableCell>
+                    <TableCell colSpan={5} className="h-12 text-center text-muted-foreground">Loading...</TableCell>
                   </TableRow>
                 ))
               ) : recentPings.length === 0 ? (
                 <TableRow>
-                  <TableCell colSpan={5} className="h-24 text-center text-muted-foreground">No recent pings found in 'pings' collection.</TableCell>
+                  <TableCell colSpan={5} className="h-24 text-center text-muted-foreground">No transactions found.</TableCell>
                 </TableRow>
               ) : (
                 recentPings.map((ping) => (
@@ -320,7 +308,7 @@ export default function AdminDashboardPage() {
                     </TableCell>
                     <TableCell>
                       <div className="flex flex-col">
-                        <span className="font-semibold text-foreground">{ping.senderName}</span>
+                        <span className="font-semibold">{ping.senderName}</span>
                         <span className="text-[10px] text-muted-foreground font-mono">{ping.buyerId}</span>
                       </div>
                     </TableCell>
@@ -340,80 +328,6 @@ export default function AdminDashboardPage() {
           </Table>
         </CardContent>
       </Card>
-
-      <div className="grid gap-6 md:grid-cols-7">
-        {/* Growth Chart */}
-        <Card className="md:col-span-4 border-border bg-card/40 backdrop-blur">
-          <CardHeader>
-            <div className="flex items-center justify-between">
-              <div>
-                <CardTitle className="text-xl">Platform Growth</CardTitle>
-                <CardDescription>Monthly active users and platform revenue</CardDescription>
-              </div>
-              <BarChart3 className="h-5 w-5 text-muted-foreground" />
-            </div>
-          </CardHeader>
-          <CardContent className="h-[350px]">
-            <ChartContainer config={chartConfig}>
-              <BarChart data={chartData}>
-                <XAxis dataKey="month" stroke="hsl(var(--muted-foreground))" fontSize={12} tickLine={false} axisLine={false} />
-                <YAxis stroke="hsl(var(--muted-foreground))" fontSize={12} tickLine={false} axisLine={false} tickFormatter={(value) => `${value}`} />
-                <ChartTooltip content={<ChartTooltipContent />} />
-                <Bar dataKey="users" fill="var(--color-users)" radius={[4, 4, 0, 0]} />
-                <Bar dataKey="revenue" fill="var(--color-revenue)" radius={[4, 4, 0, 0]} />
-              </BarChart>
-            </ChartContainer>
-          </CardContent>
-        </Card>
-
-        {/* Category breakdown */}
-        <Card className="md:col-span-3 border-border bg-card/40 backdrop-blur">
-          <CardHeader>
-            <div className="flex items-center justify-between">
-              <div>
-                <CardTitle className="text-xl">Category Insights</CardTitle>
-                <CardDescription>Fashion & Kids distribution</CardDescription>
-              </div>
-              <LayoutGrid className="h-5 w-5 text-muted-foreground" />
-            </div>
-          </CardHeader>
-          <CardContent>
-            <div className="space-y-6">
-              <div className="space-y-3">
-                <p className="text-sm font-semibold text-muted-foreground flex items-center gap-2">
-                  <TrendingUp className="h-4 w-4 text-primary" /> Fashion
-                </p>
-                <div className="grid grid-cols-2 gap-4">
-                  <div className="bg-muted/30 p-3 rounded-xl border border-border/50">
-                    <p className="text-2xl font-bold">{loading ? "..." : categoryStats.fashionApparel}</p>
-                    <p className="text-xs text-muted-foreground">Apparel</p>
-                  </div>
-                  <div className="bg-muted/30 p-3 rounded-xl border border-border/50">
-                    <p className="text-2xl font-bold">{loading ? "..." : categoryStats.fashionFootwear}</p>
-                    <p className="text-xs text-muted-foreground">Footwear</p>
-                  </div>
-                </div>
-              </div>
-
-              <div className="space-y-3">
-                <p className="text-sm font-semibold text-muted-foreground flex items-center gap-2">
-                  <Activity className="h-4 w-4 text-accent" /> Kids
-                </p>
-                <div className="grid grid-cols-2 gap-4">
-                  <div className="bg-muted/30 p-3 rounded-xl border border-border/50">
-                    <p className="text-2xl font-bold">{loading ? "..." : categoryStats.kidsApparel}</p>
-                    <p className="text-xs text-muted-foreground">Apparel</p>
-                  </div>
-                  <div className="bg-muted/30 p-3 rounded-xl border border-border/50">
-                    <p className="text-2xl font-bold">{loading ? "..." : categoryStats.kidsFootwear}</p>
-                    <p className="text-xs text-muted-foreground">Footwear</p>
-                  </div>
-                </div>
-              </div>
-            </div>
-          </CardContent>
-        </Card>
-      </div>
     </div>
   );
 }

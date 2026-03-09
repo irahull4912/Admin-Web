@@ -1,3 +1,4 @@
+
 {
   "entities": {
     "AdminUser": {
@@ -131,7 +132,7 @@
         },
         "sellerId": {
           "type": "string",
-          "description": "Reference to the Seller who owns this product. (Relationship: Seller 1:N Product)"
+          "description": "Reference to the Seller who owns this product."
         },
         "name": {
           "type": "string",
@@ -145,18 +146,21 @@
           "type": "number",
           "description": "The price of the product."
         },
+        "category": {
+          "type": "string",
+          "description": "Broad category like 'Fashion' or 'Kids'."
+        },
+        "subcategory": {
+          "type": "string",
+          "description": "Specific subcategory like 'Apparel' or 'Footwear'."
+        },
         "status": {
           "type": "string",
-          "description": "The current status of the product (e.g., 'Available', 'Draft', 'Archived', 'Unavailable')."
+          "description": "The current status of the product."
         },
         "creationDate": {
           "type": "string",
           "description": "Timestamp when the product was first created.",
-          "format": "date-time"
-        },
-        "lastUpdateDate": {
-          "type": "string",
-          "description": "Timestamp when the product's information was last updated.",
           "format": "date-time"
         }
       },
@@ -169,124 +173,28 @@
         "creationDate"
       ]
     },
-    "Subscription": {
+    "Ping": {
       "$schema": "http://json-schema.org/draft-07/schema#",
-      "title": "Subscription",
+      "title": "Ping",
       "type": "object",
-      "description": "Tracks subscription plans for either Users or Sellers to the platform.",
+      "description": "Records a notification or small transaction between a buyer and a seller.",
       "properties": {
-        "id": {
-          "type": "string",
-          "description": "Unique identifier for the Subscription entity."
-        },
-        "subscriberId": {
-          "type": "string",
-          "description": "Reference to the User or Seller who holds this subscription. (Relationship: User 1:N Subscription, Seller 1:N Subscription)"
-        },
-        "subscriberType": {
-          "type": "string",
-          "description": "Indicates whether the subscriber is a 'User' or a 'Seller', clarifying the type of entity 'subscriberId' refers to."
-        },
-        "planName": {
-          "type": "string",
-          "description": "The name of the subscription plan (e.g., 'Basic User', 'Premium User', 'Seller Pro', 'Seller Trial')."
-        },
-        "startDate": {
-          "type": "string",
-          "description": "The date when the subscription became active.",
-          "format": "date-time"
-        },
-        "endDate": {
-          "type": "string",
-          "description": "The date when the subscription is scheduled to end.",
-          "format": "date-time"
-        },
-        "status": {
-          "type": "string",
-          "description": "The current status of the subscription (e.g., 'Active', 'Trial', 'Expired', 'Canceled', 'Pending Renewal')."
-        },
-        "isTrial": {
-          "type": "boolean",
-          "description": "Indicates if the subscription is currently in a trial period."
-        },
-        "autoRenew": {
-          "type": "boolean",
-          "description": "Indicates if the subscription is set to automatically renew at the end of its term."
-        },
-        "nextBillingDate": {
-          "type": "string",
-          "description": "The next scheduled date for billing or renewal, relevant for 'ending soon' logic.",
-          "format": "date-time"
-        }
+        "id": { "type": "string" },
+        "timestamp": { "type": "string", "format": "date-time" },
+        "buyerId": { "type": "string" },
+        "sellerId": { "type": "string" },
+        "productId": { "type": "string" },
+        "status": { "type": "string", "enum": ["pending", "confirmed", "cancelled", "successful"] },
+        "amount": { "type": "number" }
       },
-      "required": [
-        "id",
-        "subscriberId",
-        "subscriberType",
-        "planName",
-        "startDate",
-        "endDate",
-        "status",
-        "isTrial",
-        "autoRenew"
-      ]
-    },
-    "Purchase": {
-      "$schema": "http://json-schema.org/draft-07/schema#",
-      "title": "Purchase",
-      "type": "object",
-      "description": "Records a transaction where a User buys a Product.",
-      "properties": {
-        "id": {
-          "type": "string",
-          "description": "Unique identifier for the Purchase entity."
-        },
-        "userId": {
-          "type": "string",
-          "description": "Reference to the User who made the purchase. (Relationship: User 1:N Purchase)"
-        },
-        "productId": {
-          "type": "string",
-          "description": "Reference to the Product that was purchased. (Relationship: Product 1:N Purchase)"
-        },
-        "quantity": {
-          "type": "number",
-          "description": "The number of units of the product purchased."
-        },
-        "unitPrice": {
-          "type": "number",
-          "description": "The price of a single unit of the product at the time of purchase."
-        },
-        "totalPrice": {
-          "type": "number",
-          "description": "The total monetary amount of the purchase."
-        },
-        "purchaseDate": {
-          "type": "string",
-          "description": "Timestamp when the purchase was completed.",
-          "format": "date-time"
-        },
-        "status": {
-          "type": "string",
-          "description": "The current status of the purchase (e.g., 'Completed', 'Pending', 'Failed', 'Refunded')."
-        }
-      },
-      "required": [
-        "id",
-        "userId",
-        "productId",
-        "quantity",
-        "unitPrice",
-        "totalPrice",
-        "purchaseDate",
-        "status"
-      ]
+      "required": ["id", "timestamp", "buyerId", "sellerId", "status"]
     }
   },
   "auth": {
     "providers": [
       "password",
-      "anonymous"
+      "anonymous",
+      "google.com"
     ]
   },
   "firestore": {
@@ -295,125 +203,42 @@
         "path": "/adminUsers/{adminId}",
         "definition": {
           "entityName": "AdminUser",
-          "schema": {
-            "$ref": "#/backend/entities/AdminUser"
-          },
-          "description": "Stores administrator profiles. Used for Database Access Control (DBAC) to authorize admin panel users based on their UID. Each document's ID corresponds to the Firebase Auth UID of an administrator."
+          "schema": { "$ref": "#/backend/entities/AdminUser" },
+          "description": "Admin profiles for access control."
         }
       },
       {
         "path": "/users/{userId}",
         "definition": {
           "entityName": "User",
-          "schema": {
-            "$ref": "#/backend/entities/User"
-          },
-          "description": "Stores general user profiles. Accessible by the user themselves for their own profile, and by authorized administrators for user management. The document ID matches the user's Firebase Auth UID.",
-          "params": [
-            {
-              "name": "userId",
-              "description": "The unique identifier of the user, matching their Firebase Auth UID."
-            }
-          ]
+          "schema": { "$ref": "#/backend/entities/User" },
+          "description": "General user profiles."
         }
       },
       {
-        "path": "/users/{userId}/purchases/{purchaseId}",
-        "definition": {
-          "entityName": "Purchase",
-          "schema": {
-            "$ref": "#/backend/entities/Purchase"
-          },
-          "description": "Stores individual purchase records belonging to a specific user. The 'userId' field in the document will match the '{userId}' path parameter for authorization independence. Accessible by the owning user and by administrators.",
-          "params": [
-            {
-              "name": "userId",
-              "description": "The unique identifier of the user who made the purchase."
-            },
-            {
-              "name": "purchaseId",
-              "description": "The unique identifier for a specific purchase transaction."
-            }
-          ]
-        }
-      },
-      {
-        "path": "/users/{userId}/subscriptions/{subscriptionId}",
-        "definition": {
-          "entityName": "Subscription",
-          "schema": {
-            "$ref": "#/backend/entities/Subscription"
-          },
-          "description": "Stores subscription details specific to a user. The 'subscriberId' field in the document will match the '{userId}' path parameter, and 'subscriberType' will be 'User' for authorization independence. Accessible by the owning user and by administrators.",
-          "params": [
-            {
-              "name": "userId",
-              "description": "The unique identifier of the user who owns this subscription."
-            },
-            {
-              "name": "subscriptionId",
-              "description": "The unique identifier for a specific user subscription."
-            }
-          ]
-        }
-      },
-      {
-        "path": "/sellers/{sellerId}",
+        "path": "/shops/{shopId}",
         "definition": {
           "entityName": "Seller",
-          "schema": {
-            "$ref": "#/backend/entities/Seller"
-          },
-          "description": "Stores seller (shop) profiles. Each document's ID corresponds to a seller's unique identifier. Primarily managed by administrators for status updates (Active/Trial, Approve/Suspend).",
-          "params": [
-            {
-              "name": "sellerId",
-              "description": "The unique identifier of the seller's shop or business."
-            }
-          ]
+          "schema": { "$ref": "#/backend/entities/Seller" },
+          "description": "Seller shop profiles (mapped to 'shops' collection)."
         }
       },
       {
-        "path": "/sellers/{sellerId}/products/{productId}",
+        "path": "/shops/{shopId}/products/{productId}",
         "definition": {
           "entityName": "Product",
-          "schema": {
-            "$ref": "#/backend/entities/Product"
-          },
-          "description": "Stores product listings belonging to a specific seller. The 'sellerId' field in the document will match the '{sellerId}' path parameter for authorization independence. Managed by the owning seller, and viewable/manageable by administrators.",
-          "params": [
-            {
-              "name": "sellerId",
-              "description": "The unique identifier of the seller who owns this product."
-            },
-            {
-              "name": "productId",
-              "description": "The unique identifier for a specific product."
-            }
-          ]
+          "schema": { "$ref": "#/backend/entities/Product" },
+          "description": "Products within a shop."
         }
       },
       {
-        "path": "/sellers/{sellerId}/subscriptions/{subscriptionId}",
+        "path": "/pings/{pingId}",
         "definition": {
-          "entityName": "Subscription",
-          "schema": {
-            "$ref": "#/backend/entities/Subscription"
-          },
-          "description": "Stores subscription details specific to a seller. The 'subscriberId' field in the document will match the '{sellerId}' path parameter, and 'subscriberType' will be 'Seller' for authorization independence. Accessible by the owning seller and by administrators (used for subscription tracking and filtering by trial status/end date).",
-          "params": [
-            {
-              "name": "sellerId",
-              "description": "The unique identifier of the seller who owns this subscription."
-            },
-            {
-              "name": "subscriptionId",
-              "description": "The unique identifier for a specific seller subscription."
-            }
-          ]
+          "entityName": "Ping",
+          "schema": { "$ref": "#/backend/entities/Ping" },
+          "description": "Global transaction pings for dashboard monitoring."
         }
       }
-    ],
-    "reasoning": "The recommended Firestore structure is designed to adhere strictly to the core design principles and strategy mandates, prioritizing Authorization Independence, Structural Segregation, and clear Access Modeling.The primary goal is to enable simple, robust, and easily debuggable security rules, especially for the AdminVault's management capabilities.\n\n**Authorization Independence:** This is achieved through explicit denormalization. For instance, any subcollection document (e.g., `purchases`, `products`, `subscriptions`) will contain a direct reference to its parent owner's ID (`userId`, `sellerId`, `subscriberId`) matching the wildcard in its path. This design eliminates the need for expensive and complex `get()` calls in security rules to verify ownership or context, allowing for atomic operations and simplifying rule logic. For the `Subscription` entity, `subscriberId` and `subscriberType` are explicitly stored within the document, ensuring that when retrieved via collection group queries or direct path access, all necessary authorization context is present without external lookups.\n\n**Structural Segregation:** Data with differing security requirements is placed into distinct collections or subcollections. For example, `AdminUser` profiles are in a dedicated `/adminUsers` collection, separate from general `User` or `Seller` data. User-specific and Seller-specific subscriptions, though sharing a common `Subscription` schema, are segregated into `/users/{userId}/subscriptions` and `/sellers/{sellerId}/subscriptions` respectively. This ensures that a single security rule can apply to all documents within a given collection/subcollection, greatly simplifying authorization logic.\n\n**Access Modeling and QAPs (Rules are not Filters):**\n\n1.  **Admin Access:** The `/adminUsers/{adminId}` collection is fundamental for Database Access Control (DBAC). An admin's UID must exist in this collection to grant them broad read/write access across the panel's managed collections (`/users`, `/sellers`, `/sellers/{sellerId}/products`, `/users/{userId}/purchases`, and all `subscriptions` via collection group queries). This allows the admin panel to perform `list` operations (QAPs) on all relevant data (e.g., all sellers, all users, all seller subscriptions) as security rules would simply check for `request.auth.uid`'s presence in `/adminUsers`.\n2.  **User Data (`/users/{userId}`):** User profiles and their associated `purchases` and `subscriptions` are nested under `/users/{userId}`. This path-based ownership makes it trivial for a user to read/write their own data (`request.auth.uid == userId`) and for admins to read all user data. `list` operations for a user on their own purchases/subscriptions are inherently filtered by the path.\n3.  **Seller Data (`/sellers/{sellerId}`):** Seller profiles are in a top-level collection (`/sellers`), enabling admins to list all sellers and filter by status. Each seller's `products` and `subscriptions` are organized as subcollections (`/sellers/{sellerId}/products` and `/sellers/{sellerId}/subscriptions`). This allows sellers to manage their own products and view their subscriptions (if applicable) and, importantly, allows admins to manage all sellers' data. For the 'Subscription Tracking' feature, admins can execute collection group queries on `subscriptions` filtered by `subscriberType: 'Seller'`, `isTrial: true`, or `nextBillingDate` without complex `get()` calls in rules, adhering to QAPs.\n\nThis structure ensures that authorization rules are concise, directly verifiable from the document itself or its path, and that queries for large datasets (e.g., all sellers, all trials) can be performed efficiently by administrators without violating security principles."
+    ]
   }
 }
