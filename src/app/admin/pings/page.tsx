@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { collection, query, orderBy, onSnapshot, Timestamp } from "firebase/firestore";
+import { collection, query, orderBy, onSnapshot, Timestamp, getDocs, collectionGroup } from "firebase/firestore";
 import { db } from "@/lib/firebase";
 import { 
   Table, 
@@ -13,7 +13,7 @@ import {
 } from "@/components/ui/table";
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
-import { Zap, Search, Filter, Loader2, ArrowLeft } from "lucide-react";
+import { Zap, Search, Filter, Loader2, ArrowLeft, ShoppingCart, Store, User as UserIcon } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import Link from "next/link";
@@ -29,14 +29,59 @@ interface PingRecord {
   amount: number;
 }
 
+interface ResolvedData {
+  users: Record<string, string>;
+  shops: Record<string, string>;
+  products: Record<string, { name: string; price: number }>;
+}
+
 export default function PingsManagementPage() {
   const [pings, setPings] = useState<PingRecord[]>([]);
   const [filteredPings, setFilteredPings] = useState<PingRecord[]>([]);
   const [loading, setLoading] = useState(true);
   const [searchTerm, setSearchTerm] = useState("");
+  const [resolvedData, setResolvedData] = useState<ResolvedData>({
+    users: {},
+    shops: {},
+    products: {}
+  });
 
   useEffect(() => {
-    // Real-time listener for pings using createdAt as requested
+    async function fetchResolutionData() {
+      try {
+        const [usersSnap, shopsSnap, productsSnap] = await Promise.all([
+          getDocs(collection(db, "users")),
+          getDocs(collection(db, "shops")),
+          getDocs(collectionGroup(db, "products"))
+        ]);
+
+        const users: Record<string, string> = {};
+        usersSnap.forEach(doc => {
+          users[doc.id] = doc.data().name || "Unknown User";
+        });
+
+        const shops: Record<string, string> = {};
+        shopsSnap.forEach(doc => {
+          shops[doc.id] = doc.data().name || "Unknown Shop";
+        });
+
+        const products: Record<string, { name: string; price: number }> = {};
+        productsSnap.forEach(doc => {
+          products[doc.id] = {
+            name: doc.data().name || "Unknown Product",
+            price: doc.data().price || 0
+          };
+        });
+
+        setResolvedData({ users, shops, products });
+      } catch (error) {
+        console.error("Error resolving ping data names:", error);
+      }
+    }
+
+    fetchResolutionData();
+
+    // Real-time listener for pings using createdAt
     const q = query(collection(db, "pings"), orderBy("createdAt", "desc"));
     const unsubscribe = onSnapshot(q, (snapshot) => {
       const pingData = snapshot.docs.map(doc => ({
@@ -55,20 +100,27 @@ export default function PingsManagementPage() {
   }, []);
 
   useEffect(() => {
-    const results = pings.filter(ping => 
-      ping.id.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      ping.status.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      ping.buyerId.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      ping.sellerId.toLowerCase().includes(searchTerm.toLowerCase())
-    );
+    const results = pings.filter(ping => {
+      const buyerName = resolvedData.users[ping.buyerId] || "";
+      const shopName = resolvedData.shops[ping.sellerId] || "";
+      const productName = resolvedData.products[ping.productId]?.name || "";
+      
+      return (
+        ping.id.toLowerCase().includes(searchTerm.toLowerCase()) ||
+        ping.status.toLowerCase().includes(searchTerm.toLowerCase()) ||
+        buyerName.toLowerCase().includes(searchTerm.toLowerCase()) ||
+        shopName.toLowerCase().includes(searchTerm.toLowerCase()) ||
+        productName.toLowerCase().includes(searchTerm.toLowerCase())
+      );
+    });
     setFilteredPings(results);
-  }, [searchTerm, pings]);
+  }, [searchTerm, pings, resolvedData]);
 
   const formatPingDate = (createdAt: any) => {
     if (!createdAt) return "N/A";
     const date = createdAt instanceof Timestamp ? createdAt.toDate() : new Date(createdAt);
     try {
-      return format(date, "MMM d, yyyy h:mm a");
+      return format(date, "MMM d, HH:mm");
     } catch {
       return "Invalid Date";
     }
@@ -102,13 +154,13 @@ export default function PingsManagementPage() {
             </Link>
             <h1 className="text-3xl font-headline font-bold text-foreground tracking-tight">Ping Transactions</h1>
           </div>
-          <p className="text-muted-foreground text-lg">Comprehensive audit log of all transaction pings on the platform.</p>
+          <p className="text-muted-foreground text-lg">Detailed audit log resolving buyer, shop, and product identities.</p>
         </div>
         <div className="flex items-center gap-3">
           <div className="relative w-64">
             <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
             <Input 
-              placeholder="Search pings..." 
+              placeholder="Search by buyer, shop or product..." 
               className="pl-9"
               value={searchTerm}
               onChange={(e) => setSearchTerm(e.target.value)}
@@ -139,20 +191,17 @@ export default function PingsManagementPage() {
         </Card>
         <Card className="bg-card/40 backdrop-blur border-border">
           <CardHeader className="pb-2">
-            <CardDescription className="text-xs uppercase font-bold tracking-wider">Volume (7d)</CardDescription>
+            <CardDescription className="text-xs uppercase font-bold tracking-wider">Active Volume</CardDescription>
             <CardTitle className="text-3xl">
-              {pings.filter(p => {
-                const date = p.createdAt instanceof Timestamp ? p.createdAt.toDate() : new Date(p.createdAt);
-                return date > new Date(Date.now() - 7 * 24 * 60 * 60 * 1000);
-              }).length}
+              {pings.filter(p => p.status === 'pending' || p.status === 'confirmed').length}
             </CardTitle>
           </CardHeader>
         </Card>
         <Card className="bg-card/40 backdrop-blur border-border">
           <CardHeader className="pb-2">
-            <CardDescription className="text-xs uppercase font-bold tracking-wider">Avg Amount</CardDescription>
+            <CardDescription className="text-xs uppercase font-bold tracking-wider">Total Value</CardDescription>
             <CardTitle className="text-3xl">
-              ${(pings.reduce((acc, p) => acc + (p.amount || 0), 0) / (pings.length || 1)).toFixed(2)}
+              ${pings.reduce((acc, p) => acc + (p.amount || 0), 0).toLocaleString()}
             </CardTitle>
           </CardHeader>
         </Card>
@@ -164,40 +213,68 @@ export default function PingsManagementPage() {
             <Zap className="h-5 w-5 text-primary" />
             <CardTitle>Master Audit Log</CardTitle>
           </div>
-          <CardDescription>Full history of every interaction between buyers and sellers.</CardDescription>
+          <CardDescription>Full history of resolved interactions between buyers and sellers.</CardDescription>
         </CardHeader>
         <CardContent className="p-0">
           <Table>
             <TableHeader className="bg-muted/30">
               <TableRow>
-                <TableHead>Date & Time</TableHead>
-                <TableHead>Ping ID</TableHead>
-                <TableHead>Buyer ID</TableHead>
-                <TableHead>Amount</TableHead>
+                <TableHead className="w-[120px]">Date</TableHead>
+                <TableHead>Buyer</TableHead>
+                <TableHead>Shop</TableHead>
+                <TableHead>Product Details</TableHead>
+                <TableHead>Price</TableHead>
                 <TableHead className="text-right">Status</TableHead>
               </TableRow>
             </TableHeader>
             <TableBody>
               {filteredPings.length === 0 ? (
                 <TableRow>
-                  <TableCell colSpan={5} className="h-24 text-center text-muted-foreground">
-                    No pings found matching your search.
+                  <TableCell colSpan={6} className="h-24 text-center text-muted-foreground">
+                    No transactions found.
                   </TableCell>
                 </TableRow>
               ) : (
-                filteredPings.map((ping) => (
-                  <TableRow key={ping.id} className="hover:bg-muted/20 transition-colors">
-                    <TableCell className="text-xs font-medium text-muted-foreground">
-                      {formatPingDate(ping.createdAt)}
-                    </TableCell>
-                    <TableCell className="font-mono text-[10px]">{ping.id}</TableCell>
-                    <TableCell className="text-xs font-mono text-muted-foreground">{ping.buyerId}</TableCell>
-                    <TableCell className="font-semibold">${(ping.amount || 0).toLocaleString()}</TableCell>
-                    <TableCell className="text-right">
-                      {getStatusBadge(ping.status)}
-                    </TableCell>
-                  </TableRow>
-                ))
+                filteredPings.map((ping) => {
+                  const buyerName = resolvedData.users[ping.buyerId] || "Guest User";
+                  const shopName = resolvedData.shops[ping.sellerId] || "Unknown Shop";
+                  const productInfo = resolvedData.products[ping.productId] || { name: "Unknown Item", price: 0 };
+                  
+                  return (
+                    <TableRow key={ping.id} className="hover:bg-muted/20 transition-colors">
+                      <TableCell className="text-xs font-medium text-muted-foreground">
+                        {formatPingDate(ping.createdAt)}
+                      </TableCell>
+                      <TableCell>
+                        <div className="flex items-center gap-2">
+                          <UserIcon className="h-3 w-3 text-muted-foreground" />
+                          <span className="font-medium text-foreground truncate max-w-[120px]">{buyerName}</span>
+                        </div>
+                      </TableCell>
+                      <TableCell>
+                        <div className="flex items-center gap-2">
+                          <Store className="h-3 w-3 text-muted-foreground" />
+                          <span className="font-medium truncate max-w-[120px]">{shopName}</span>
+                        </div>
+                      </TableCell>
+                      <TableCell>
+                        <div className="flex items-center gap-2">
+                          <ShoppingCart className="h-3 w-3 text-primary/60" />
+                          <div className="flex flex-col">
+                            <span className="font-semibold text-sm truncate max-w-[150px]">{productInfo.name}</span>
+                            <span className="text-[10px] text-muted-foreground font-mono">{ping.productId.slice(0, 8)}...</span>
+                          </div>
+                        </div>
+                      </TableCell>
+                      <TableCell className="font-bold text-primary">
+                        ${(ping.amount || productInfo.price).toLocaleString()}
+                      </TableCell>
+                      <TableCell className="text-right">
+                        {getStatusBadge(ping.status)}
+                      </TableCell>
+                    </TableRow>
+                  );
+                })
               )}
             </TableBody>
           </Table>
