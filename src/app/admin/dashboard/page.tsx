@@ -2,7 +2,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { collection, getDocs } from "firebase/firestore";
+import { collection, getDocs, query, orderBy, limit, Timestamp } from "firebase/firestore";
 import { db } from "@/lib/firebase";
 import { StatCard } from "../components/stat-card";
 import { 
@@ -16,11 +16,22 @@ import {
   TrendingUp,
   BarChart3,
   Clock,
-  CreditCard
+  CreditCard,
+  Search
 } from "lucide-react";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { ChartContainer, ChartTooltip, ChartTooltipContent } from "@/components/ui/chart";
 import { Bar, BarChart, XAxis, YAxis } from "recharts";
+import { 
+  Table, 
+  TableBody, 
+  TableCell, 
+  TableHead, 
+  TableHeader, 
+  TableRow 
+} from "@/components/ui/table";
+import { Badge } from "@/components/ui/badge";
+import { format } from "date-fns";
 
 const chartData = [
   { month: "Jan", users: 1200, revenue: 4500 },
@@ -42,12 +53,24 @@ const chartConfig = {
   },
 };
 
+interface PingRecord {
+  id: string;
+  timestamp: any;
+  buyerId: string;
+  sellerId: string;
+  productId: string;
+  status: string;
+  senderName: string;
+  productName: string;
+}
+
 export default function AdminDashboardPage() {
   const [loading, setLoading] = useState(true);
   const [totalUsers, setTotalUsers] = useState(0);
   const [totalSellers, setTotalSellers] = useState(0);
   const [totalProducts, setTotalProducts] = useState(0);
   const [totalRevenue, setTotalRevenue] = useState(0);
+  const [recentPings, setRecentPings] = useState<PingRecord[]>([]);
 
   // Ping statuses
   const [pingStats, setPingStats] = useState({
@@ -81,34 +104,50 @@ export default function AdminDashboardPage() {
         setTotalSellers(shopsSnap.size);
         setTotalProducts(productsSnap.size);
 
-        // Fetch Pings with specific error logging
+        // Build lookup maps for names
+        const userMap = new Map();
+        usersSnap.forEach(doc => userMap.set(doc.id, doc.data().name || "Unknown User"));
+
+        const productMap = new Map();
+        productsSnap.forEach(doc => productMap.set(doc.id, doc.data().name || "Unknown Product"));
+
+        // Fetch Pings
         try {
-          const pingsSnap = await getDocs(collection(db, "pings"));
+          const pingsQuery = query(collection(db, "pings"), orderBy("timestamp", "desc"), limit(10));
+          const pingsSnap = await getDocs(pingsQuery);
+          
           let revenue = 0;
-          const pings = { pending: 0, confirmed: 0, cancelled: 0, successful: 0 };
+          const pings: PingRecord[] = [];
+          const stats = { pending: 0, confirmed: 0, cancelled: 0, successful: 0 };
           
           pingsSnap.forEach(doc => {
             const data = doc.data();
             revenue += (data.amount || data.total || 0);
             
-            const status = data.status?.toLowerCase();
-            if (status === 'pending') pings.pending++;
-            else if (status === 'confirmed') pings.confirmed++;
-            else if (status === 'cancelled') pings.cancelled++;
-            else if (status === 'successful' || status === 'completed') pings.successful++;
+            const status = (data.status || 'pending').toLowerCase();
+            if (status === 'pending') stats.pending++;
+            else if (status === 'confirmed') stats.confirmed++;
+            else if (status === 'cancelled') stats.cancelled++;
+            else if (status === 'successful' || status === 'completed') stats.successful++;
+
+            pings.push({
+              id: doc.id,
+              timestamp: data.timestamp,
+              buyerId: data.buyerId || 'N/A',
+              sellerId: data.sellerId || 'N/A',
+              productId: data.productId || 'N/A',
+              status: data.status || 'Pending',
+              senderName: userMap.get(data.buyerId) || "Unknown User",
+              productName: productMap.get(data.productId) || "Unknown Product"
+            });
           });
 
           setTotalRevenue(revenue);
-          setPingStats(pings);
+          setPingStats(stats);
+          setRecentPings(pings);
         } catch (pingError) {
-          console.error("Error fetching pings collection (checking permissions):", pingError);
+          console.error("Error fetching pings collection:", pingError);
         }
-
-        // Note: sellerSubscriptions fetch remains commented out per request
-        /*
-        const sellerSubsSnap = await getDocs(collection(db, "sellerSubscriptions"));
-        // process seller subscriptions...
-        */
 
         // Calculate Category Stats from 'products'
         const cats = { fashionApparel: 0, fashionFootwear: 0, kidsApparel: 0, kidsFootwear: 0 };
@@ -136,6 +175,21 @@ export default function AdminDashboardPage() {
 
     fetchDashboardData();
   }, []);
+
+  const formatPingDate = (timestamp: any) => {
+    if (!timestamp) return "N/A";
+    const date = timestamp instanceof Timestamp ? timestamp.toDate() : new Date(timestamp);
+    return format(date, "MMM d, h:mm a");
+  };
+
+  const getStatusBadge = (status: string) => {
+    const s = status.toLowerCase();
+    if (s === 'successful' || s === 'completed') return <Badge className="bg-emerald-500/10 text-emerald-500 border-emerald-500/20">Successful</Badge>;
+    if (s === 'pending') return <Badge variant="secondary" className="bg-amber-500/10 text-amber-500 border-amber-500/20">Pending</Badge>;
+    if (s === 'confirmed') return <Badge className="bg-blue-500/10 text-blue-500 border-blue-500/20">Confirmed</Badge>;
+    if (s === 'cancelled') return <Badge variant="destructive" className="bg-destructive/10 text-destructive border-destructive/20">Cancelled</Badge>;
+    return <Badge variant="outline">{status}</Badge>;
+  };
 
   return (
     <div className="space-y-8 animate-in fade-in slide-in-from-bottom-4 duration-500">
@@ -201,6 +255,71 @@ export default function AdminDashboardPage() {
           </Card>
         ))}
       </div>
+
+      {/* Recent Pings Table */}
+      <Card className="border-border bg-card/40 backdrop-blur overflow-hidden">
+        <CardHeader>
+          <div className="flex items-center justify-between">
+            <div>
+              <CardTitle className="text-xl">Recent Pings</CardTitle>
+              <CardDescription>Real-time view of latest transactions across the platform.</CardDescription>
+            </div>
+            <Activity className="h-5 w-5 text-muted-foreground" />
+          </div>
+        </CardHeader>
+        <CardContent className="p-0">
+          <Table>
+            <TableHeader className="bg-muted/30">
+              <TableRow>
+                <TableHead className="w-[180px]">Date & Time</TableHead>
+                <TableHead>Sender Name (ID)</TableHead>
+                <TableHead>Receiver ID</TableHead>
+                <TableHead>Product Name</TableHead>
+                <TableHead className="text-right">Status</TableHead>
+              </TableRow>
+            </TableHeader>
+            <TableBody>
+              {loading ? (
+                Array.from({ length: 5 }).map((_, i) => (
+                  <TableRow key={i}>
+                    <TableCell colSpan={5} className="h-12 text-center text-muted-foreground animate-pulse">Loading ping data...</TableCell>
+                  </TableRow>
+                ))
+              ) : recentPings.length === 0 ? (
+                <TableRow>
+                  <TableCell colSpan={5} className="h-24 text-center text-muted-foreground">No recent pings found.</TableCell>
+                </TableRow>
+              ) : (
+                recentPings.map((ping) => (
+                  <TableRow key={ping.id} className="hover:bg-muted/20 transition-colors">
+                    <TableCell className="text-xs font-medium text-muted-foreground">
+                      <div className="flex items-center gap-2">
+                        <Clock className="h-3 w-3" />
+                        {formatPingDate(ping.timestamp)}
+                      </div>
+                    </TableCell>
+                    <TableCell>
+                      <div className="flex flex-col">
+                        <span className="font-semibold text-foreground">{ping.senderName}</span>
+                        <span className="text-[10px] text-muted-foreground font-mono">{ping.buyerId}</span>
+                      </div>
+                    </TableCell>
+                    <TableCell className="text-[10px] text-muted-foreground font-mono">
+                      {ping.sellerId}
+                    </TableCell>
+                    <TableCell className="font-medium max-w-[200px] truncate">
+                      {ping.productName}
+                    </TableCell>
+                    <TableCell className="text-right">
+                      {getStatusBadge(ping.status)}
+                    </TableCell>
+                  </TableRow>
+                ))
+              )}
+            </TableBody>
+          </Table>
+        </CardContent>
+      </Card>
 
       <div className="grid gap-6 md:grid-cols-7">
         {/* Growth Chart */}
@@ -276,13 +395,13 @@ export default function AdminDashboardPage() {
         </Card>
       </div>
 
-      {/* Recent Activity */}
+      {/* Recent Activity (Summary) */}
       <Card className="border-border bg-card/40 backdrop-blur">
         <CardHeader>
           <div className="flex items-center justify-between">
             <div>
-              <CardTitle className="text-xl">Recent Activity</CardTitle>
-              <CardDescription>Latest system-wide events and transactions</CardDescription>
+              <CardTitle className="text-xl">System Status</CardTitle>
+              <CardDescription>Latest system-wide events and performance</CardDescription>
             </div>
             <Activity className="h-5 w-5 text-muted-foreground" />
           </div>
