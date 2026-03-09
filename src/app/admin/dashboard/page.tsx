@@ -48,10 +48,10 @@ export default function AdminDashboardPage() {
     async function fetchCounts() {
       try {
         const usersSnapshot = await getDocs(collection(db, "users"));
-        const sellersSnapshot = await getDocs(collection(db, "sellers"));
+        const shopsSnapshot = await getDocs(collection(db, "shops"));
         
         setTotalUsers(usersSnapshot.size);
-        setTotalSellers(sellersSnapshot.size);
+        setTotalSellers(shopsSnapshot.size);
       } catch (error) {
         console.error("Error fetching dashboard counts:", error);
       } finally {
