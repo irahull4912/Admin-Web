@@ -2,6 +2,7 @@
 import { Card, CardContent } from "@/components/ui/card";
 import { cn } from "@/lib/utils";
 import { LucideIcon } from "lucide-react";
+import Link from "next/link";
 
 interface StatCardProps {
   label: string;
@@ -10,18 +11,26 @@ interface StatCardProps {
   trend?: string;
   trendType?: "positive" | "negative";
   className?: string;
+  href?: string;
 }
 
-export function StatCard({ label, value, icon: Icon, trend, trendType, className }: StatCardProps) {
-  return (
-    <Card className={cn("overflow-hidden border-border bg-card/40 backdrop-blur hover:bg-card/60 transition-colors", className)}>
+export function StatCard({ label, value, icon: Icon, trend, trendType, className, href }: StatCardProps) {
+  const content = (
+    <Card className={cn(
+      "overflow-hidden border-border bg-card/40 backdrop-blur transition-all duration-200",
+      href ? "hover:bg-card/60 hover:border-primary/50 cursor-pointer active:scale-[0.98] group" : "",
+      className
+    )}>
       <CardContent className="p-6">
         <div className="flex items-center justify-between">
           <div className="space-y-1">
             <p className="text-sm font-medium text-muted-foreground">{label}</p>
             <p className="text-3xl font-bold tracking-tight text-foreground">{value}</p>
           </div>
-          <div className="h-12 w-12 rounded-xl bg-primary/10 flex items-center justify-center border border-primary/20">
+          <div className={cn(
+            "h-12 w-12 rounded-xl bg-primary/10 flex items-center justify-center border border-primary/20 transition-transform duration-200",
+            href ? "group-hover:scale-110" : ""
+          )}>
             <Icon className="h-6 w-6 text-primary" />
           </div>
         </div>
@@ -39,4 +48,10 @@ export function StatCard({ label, value, icon: Icon, trend, trendType, className
       </CardContent>
     </Card>
   );
+
+  if (href) {
+    return <Link href={href} className="block no-underline">{content}</Link>;
+  }
+
+  return content;
 }

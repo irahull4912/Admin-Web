@@ -17,7 +17,6 @@ import { db } from "@/lib/firebase";
 import { StatCard } from "../components/stat-card";
 import { 
   Users, 
-  Store, 
   Package, 
   DollarSign,
   Zap,
@@ -52,7 +51,6 @@ interface PingRecord {
 export default function AdminDashboardPage() {
   const [loading, setLoading] = useState(true);
   const [totalUsers, setTotalUsers] = useState(0);
-  const [totalSellers, setTotalSellers] = useState(0);
   const [totalProducts, setTotalProducts] = useState(0);
   const [totalRevenue, setTotalRevenue] = useState(0);
   const [totalPings, setTotalPings] = useState(0);
@@ -83,14 +81,12 @@ export default function AdminDashboardPage() {
         }
 
         // 2. Fetch core entities
-        const [usersSnap, shopsSnap, productsSnap] = await Promise.all([
+        const [usersSnap, productsSnap] = await Promise.all([
           getDocs(collection(db, "users")),
-          getDocs(collection(db, "shops")),
           getDocs(collectionGroup(db, "products")), 
         ]);
 
         setTotalUsers(usersSnap.size);
-        setTotalSellers(shopsSnap.size);
         setTotalProducts(productsSnap.size);
 
         // Build lookup maps
@@ -200,7 +196,7 @@ export default function AdminDashboardPage() {
         </div>
       </div>
 
-      <div className="grid gap-6 sm:grid-cols-2 lg:grid-cols-4">
+      <div className="grid gap-6 sm:grid-cols-2 lg:grid-cols-3">
         <StatCard 
           label="Total Revenue" 
           value={loading ? "..." : `$${totalRevenue.toLocaleString()}`} 
@@ -209,18 +205,12 @@ export default function AdminDashboardPage() {
           trendType="positive"
         />
         <StatCard 
-          label="Total Pings" 
-          value={loading ? "..." : totalPings.toLocaleString()} 
-          icon={BarChart3} 
-          trend="+15.2%" 
-          trendType="positive"
-        />
-        <StatCard 
           label="Live Products" 
           value={loading ? "..." : totalProducts.toLocaleString()} 
           icon={Package} 
           trend="+8.4%" 
           trendType="positive"
+          href="/admin/products"
         />
         <StatCard 
           label="Total Users" 
@@ -228,6 +218,7 @@ export default function AdminDashboardPage() {
           icon={Users} 
           trend="+12%" 
           trendType="positive"
+          href="/admin/users"
         />
       </div>
 
