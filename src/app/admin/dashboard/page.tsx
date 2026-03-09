@@ -22,8 +22,7 @@ import {
   DollarSign,
   Zap,
   Activity,
-  Clock,
-  CheckCircle
+  Clock
 } from "lucide-react";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { 
@@ -62,7 +61,7 @@ export default function AdminDashboardPage() {
     pending: 0,
     confirmed: 0,
     cancelled: 0,
-    successful: 0
+    successful: 0,
   });
 
   useEffect(() => {
@@ -107,7 +106,6 @@ export default function AdminDashboardPage() {
 
         // 3. Fetch Pings
         try {
-          // Attempt a sorted query first, fallback to unsorted if index is missing
           let pingsSnap;
           try {
             const pingsQuery = query(collection(db, "pings"), orderBy("timestamp", "desc"), limit(50));
@@ -197,7 +195,7 @@ export default function AdminDashboardPage() {
         </div>
       </div>
 
-      <div className="grid gap-6 sm:grid-cols-2 lg:grid-cols-3">
+      <div className="grid gap-6 sm:grid-cols-2 lg:grid-cols-4">
         <StatCard 
           label="Total Revenue" 
           value={loading ? "..." : `$${totalRevenue.toLocaleString()}`} 
@@ -210,6 +208,13 @@ export default function AdminDashboardPage() {
           value={loading ? "..." : totalProducts.toLocaleString()} 
           icon={Package} 
           trend="+8.4%" 
+          trendType="positive"
+        />
+        <StatCard 
+          label="Total Sellers" 
+          value={loading ? "..." : totalSellers.toLocaleString()} 
+          icon={Store} 
+          trend="+5.2%" 
           trendType="positive"
         />
         <StatCard 
