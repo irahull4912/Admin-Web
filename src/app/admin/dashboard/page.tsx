@@ -38,7 +38,7 @@ import { format } from "date-fns";
 
 interface PingRecord {
   id: string;
-  timestamp: any;
+  createdAt: any;
   buyerId: string;
   sellerId: string;
   productId: string;
@@ -86,6 +86,9 @@ export default function AdminDashboardPage() {
           getDocs(collectionGroup(db, "products")), 
         ]);
 
+        console.log(`DEBUG: Raw Users Count: ${usersSnap.size}`);
+        console.log(`DEBUG: Raw Products Count: ${productsSnap.size}`);
+
         setTotalUsers(usersSnap.size);
         setTotalProducts(productsSnap.size);
 
@@ -106,11 +109,14 @@ export default function AdminDashboardPage() {
         try {
           let pingsSnap;
           try {
-            const pingsQuery = query(collection(db, "pings"), orderBy("timestamp", "desc"), limit(50));
+            // Using createdAt as requested by the user
+            const pingsQuery = query(collection(db, "pings"), orderBy("createdAt", "desc"), limit(50));
             pingsSnap = await getDocs(pingsQuery);
+            console.log(`DEBUG: Indexed Pings Count (createdAt): ${pingsSnap.size}`);
           } catch (e) {
-            console.log("Falling back to unindexed fetch for pings");
+            console.warn("Falling back to unindexed fetch for pings. Index might be missing for 'createdAt'.", e);
             pingsSnap = await getDocs(collection(db, "pings"));
+            console.log(`DEBUG: Unindexed Pings Count: ${pingsSnap.size}`);
           }
           
           let revenue = 0;
@@ -123,20 +129,23 @@ export default function AdminDashboardPage() {
             const data = doc.data();
             const amount = data.amount || data.total || 0;
             
-            // Normalize status for counting
+            // Normalize status for counting - robust lowercase pending check
             const rawStatus = (data.status || 'pending').toString().toLowerCase().trim();
             
-            if (rawStatus === 'pending') stats.pending++;
-            else if (rawStatus === 'confirmed') stats.confirmed++;
-            else if (rawStatus === 'cancelled') stats.cancelled++;
-            else if (rawStatus === 'successful' || rawStatus === 'completed' || rawStatus === 'success') {
+            if (rawStatus === 'pending') {
+              stats.pending++;
+            } else if (rawStatus === 'confirmed') {
+              stats.confirmed++;
+            } else if (rawStatus === 'cancelled') {
+              stats.cancelled++;
+            } else if (rawStatus === 'successful' || rawStatus === 'completed' || rawStatus === 'success') {
               stats.successful++;
               revenue += amount;
             }
 
             pings.push({
               id: doc.id,
-              timestamp: data.timestamp,
+              createdAt: data.createdAt,
               buyerId: data.buyerId || 'N/A',
               sellerId: data.sellerId || 'N/A',
               productId: data.productId || 'N/A',
@@ -164,9 +173,9 @@ export default function AdminDashboardPage() {
     fetchDashboardData();
   }, []);
 
-  const formatPingDate = (timestamp: any) => {
-    if (!timestamp) return "N/A";
-    const date = timestamp instanceof Timestamp ? timestamp.toDate() : new Date(timestamp);
+  const formatPingDate = (createdAt: any) => {
+    if (!createdAt) return "N/A";
+    const date = createdAt instanceof Timestamp ? createdAt.toDate() : new Date(createdAt);
     try {
       return format(date, "MMM d, h:mm a");
     } catch {
@@ -196,7 +205,7 @@ export default function AdminDashboardPage() {
         </div>
       </div>
 
-      <div className="grid gap-6 sm:grid-cols-2 lg:grid-cols-3">
+      <div className="grid gap-6 sm:grid-cols-2 lg:grid-cols-4">
         <StatCard 
           label="Total Revenue" 
           value={loading ? "..." : `$${totalRevenue.toLocaleString()}`} 
@@ -219,6 +228,13 @@ export default function AdminDashboardPage() {
           trend="+12%" 
           trendType="positive"
           href="/admin/users"
+        />
+        <StatCard 
+          label="Total Pings" 
+          value={loading ? "..." : totalPings.toLocaleString()} 
+          icon={Zap} 
+          trend="+15%" 
+          trendType="positive"
         />
       </div>
 
@@ -279,7 +295,7 @@ export default function AdminDashboardPage() {
                     <TableCell className="text-xs font-medium text-muted-foreground">
                       <div className="flex items-center gap-2">
                         <Clock className="h-3 w-3" />
-                        {formatPingDate(ping.timestamp)}
+                        {formatPingDate(ping.createdAt)}
                       </div>
                     </TableCell>
                     <TableCell>
