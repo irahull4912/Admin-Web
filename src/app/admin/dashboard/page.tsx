@@ -1,6 +1,9 @@
 
 "use client";
 
+import { useEffect, useState } from "react";
+import { collection, getDocs } from "firebase/firestore";
+import { db } from "@/lib/firebase";
 import { StatCard } from "../components/stat-card";
 import { 
   Users, 
@@ -10,11 +13,12 @@ import {
   ArrowUpRight, 
   TrendingUp,
   BarChart3,
-  Activity
+  Activity,
+  Loader2
 } from "lucide-react";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { ChartContainer, ChartTooltip, ChartTooltipContent } from "@/components/ui/chart";
-import { Bar, BarChart, ResponsiveContainer, XAxis, YAxis } from "recharts";
+import { Bar, BarChart, XAxis, YAxis } from "recharts";
 
 const chartData = [
   { month: "Jan", users: 1200, revenue: 4500 },
@@ -37,6 +41,28 @@ const chartConfig = {
 };
 
 export default function AdminDashboardPage() {
+  const [totalUsers, setTotalUsers] = useState(0);
+  const [totalSellers, setTotalSellers] = useState(0);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    async function fetchCounts() {
+      try {
+        const usersSnapshot = await getDocs(collection(db, "users"));
+        const sellersSnapshot = await getDocs(collection(db, "sellers"));
+        
+        setTotalUsers(usersSnapshot.size);
+        setTotalSellers(sellersSnapshot.size);
+      } catch (error) {
+        console.error("Error fetching dashboard counts:", error);
+      } finally {
+        setLoading(false);
+      }
+    }
+
+    fetchCounts();
+  }, []);
+
   return (
     <div className="space-y-8 animate-in fade-in slide-in-from-bottom-4 duration-500">
       <div>
@@ -47,14 +73,14 @@ export default function AdminDashboardPage() {
       <div className="grid gap-6 sm:grid-cols-2 lg:grid-cols-4">
         <StatCard 
           label="Total Users" 
-          value="12,842" 
+          value={loading ? "..." : totalUsers.toLocaleString()} 
           icon={Users} 
           trend="+12%" 
           trendType="positive"
         />
         <StatCard 
           label="Total Sellers" 
-          value="843" 
+          value={loading ? "..." : totalSellers.toLocaleString()} 
           icon={Store} 
           trend="+5%" 
           trendType="positive"
