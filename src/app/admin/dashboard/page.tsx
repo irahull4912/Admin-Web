@@ -22,7 +22,8 @@ import {
   DollarSign,
   Zap,
   Activity,
-  Clock
+  Clock,
+  CheckCircle
 } from "lucide-react";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { 
@@ -76,7 +77,6 @@ export default function AdminDashboardPage() {
           const directPingSnap = await getDoc(directPingRef);
           if (directPingSnap.exists()) {
             console.log("DEBUG: Direct Ping Fetch SUCCESS:", directPingSnap.data());
-            console.log("DEBUG: Direct Ping STATUS:", directPingSnap.data().status);
           } else {
             console.log("DEBUG: Direct Ping Fetch FAILED: Document 'yurRTVAC4VmO3nXCXImP' not found in 'pings' collection.");
           }
@@ -112,8 +112,15 @@ export default function AdminDashboardPage() {
 
         // 3. Fetch Pings
         try {
-          const pingsQuery = query(collection(db, "pings"), orderBy("timestamp", "desc"), limit(50));
-          const pingsSnap = await getDocs(pingsQuery);
+          // Attempt a sorted query first, fallback to unsorted if index is missing
+          let pingsSnap;
+          try {
+            const pingsQuery = query(collection(db, "pings"), orderBy("timestamp", "desc"), limit(50));
+            pingsSnap = await getDocs(pingsQuery);
+          } catch (e) {
+            console.warn("Pings query with orderBy failed (missing index?), falling back to basic fetch.");
+            pingsSnap = await getDocs(collection(db, "pings"));
+          }
           
           console.log(`Total pings fetched (raw): ${pingsSnap.size}`);
           
@@ -125,13 +132,14 @@ export default function AdminDashboardPage() {
             const data = doc.data();
             const amount = data.amount || data.total || 0;
             
-            // Normalize status for counting
-            const rawStatus = (data.status || 'pending').toLowerCase();
+            // Normalize status for counting (trim and lowercase)
+            const rawStatus = (data.status || 'pending').toString().toLowerCase().trim();
+            console.log(`DEBUG: Processing Ping ${doc.id} - Raw Status: "${data.status}", Normalized: "${rawStatus}"`);
             
             if (rawStatus === 'pending') stats.pending++;
             else if (rawStatus === 'confirmed') stats.confirmed++;
             else if (rawStatus === 'cancelled') stats.cancelled++;
-            else if (rawStatus === 'successful' || rawStatus === 'completed') {
+            else if (rawStatus === 'successful' || rawStatus === 'completed' || rawStatus === 'success') {
               stats.successful++;
               revenue += amount;
             }
@@ -182,8 +190,8 @@ export default function AdminDashboardPage() {
   };
 
   const getStatusBadge = (status: string) => {
-    const s = status.toLowerCase();
-    if (s === 'successful' || s === 'completed') return <Badge className="bg-emerald-500/10 text-emerald-500 border-emerald-500/20">Successful</Badge>;
+    const s = status.toLowerCase().trim();
+    if (s === 'successful' || s === 'completed' || s === 'success') return <Badge className="bg-emerald-500/10 text-emerald-500 border-emerald-500/20">Successful</Badge>;
     if (s === 'pending') return <Badge variant="secondary" className="bg-amber-500/10 text-amber-500 border-amber-500/20">Pending</Badge>;
     if (s === 'confirmed') return <Badge className="bg-blue-500/10 text-blue-500 border-blue-500/20">Confirmed</Badge>;
     if (s === 'cancelled') return <Badge variant="destructive" className="bg-destructive/10 text-destructive border-destructive/20">Cancelled</Badge>;
@@ -212,10 +220,10 @@ export default function AdminDashboardPage() {
           trendType="positive"
         />
         <StatCard 
-          label="Total Users" 
-          value={loading ? "..." : totalUsers.toLocaleString()} 
-          icon={Users} 
-          trend="+12%" 
+          label="Successful Pings" 
+          value={loading ? "..." : pingStats.successful.toLocaleString()} 
+          icon={CheckCircle} 
+          trend="+15.3%" 
           trendType="positive"
         />
         <StatCard 
@@ -226,10 +234,10 @@ export default function AdminDashboardPage() {
           trendType="positive"
         />
         <StatCard 
-          label="Total Sellers" 
-          value={loading ? "..." : totalSellers.toLocaleString()} 
-          icon={Store} 
-          trend="+5.2%" 
+          label="Total Users" 
+          value={loading ? "..." : totalUsers.toLocaleString()} 
+          icon={Users} 
+          trend="+12%" 
           trendType="positive"
         />
       </div>
