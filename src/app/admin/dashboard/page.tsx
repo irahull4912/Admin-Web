@@ -159,6 +159,8 @@ export default function AdminDashboardPage() {
             });
           });
 
+          console.log("DEBUG: Processed Ping Stats:", stats);
+
           setTotalRevenue(revenue);
           setPingStats(stats);
           setRecentPings(pings);
