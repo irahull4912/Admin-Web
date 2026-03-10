@@ -1,4 +1,3 @@
-
 "use client";
 
 import { useState, useEffect, useCallback, Suspense } from "react";
@@ -62,7 +61,7 @@ interface UserPing {
 
 interface ResolvedMapping {
   shops: Record<string, string>;
-  products: Record<string, string>;
+  products: Record<string, { name: string; price: number }>;
 }
 
 function UserManagementContent() {
@@ -113,12 +112,12 @@ function UserManagementContent() {
         })) as UserPing[];
         setUserPings(pingData);
 
-        // Resolve Shop and Product names for these pings
+        // Resolve Shop and Product details for these pings
         const shopIds = new Set(pingData.map(p => p.shopId || p.sellerId).filter(Boolean) as string[]);
         const productIds = new Set(pingData.map(p => p.items?.[0]?.productId || p.productId).filter(Boolean) as string[]);
 
         const shopNames: Record<string, string> = {};
-        const productNames: Record<string, string> = {};
+        const productDetails: Record<string, { name: string; price: number }> = {};
 
         // Fetch Shops
         if (shopIds.size > 0) {
@@ -135,12 +134,15 @@ function UserManagementContent() {
           const productsSnap = await getDocs(collectionGroup(db, "products"));
           productsSnap.forEach(pDoc => {
             if (productIds.has(pDoc.id)) {
-              productNames[pDoc.id] = pDoc.data().name || "Unknown Product";
+              productDetails[pDoc.id] = {
+                name: pDoc.data().name || "Unknown Product",
+                price: pDoc.data().price || 0
+              };
             }
           });
         }
 
-        setResolvedData({ shops: shopNames, products: productNames });
+        setResolvedData({ shops: shopNames, products: productDetails });
       }
     } catch (error) {
       console.error("Error searching user or fetching pings:", error);
@@ -342,7 +344,7 @@ function UserManagementContent() {
                       const shopId = ping.shopId || ping.sellerId || "";
                       const productId = ping.items?.[0]?.productId || ping.productId || "";
                       const shopName = resolvedData.shops[shopId] || "Unknown Shop";
-                      const productName = resolvedData.products[productId] || "Unknown Item";
+                      const productInfo = resolvedData.products[productId] || { name: "Unknown Item", price: 0 };
 
                       return (
                         <TableRow key={ping.id} className="hover:bg-muted/20 transition-colors">
@@ -358,11 +360,11 @@ function UserManagementContent() {
                           <TableCell>
                             <div className="flex items-center gap-2">
                               <ShoppingCart className="h-3 w-3 text-primary/60" />
-                              <span className="text-sm">{productName}</span>
+                              <span className="text-sm">{productInfo.name}</span>
                             </div>
                           </TableCell>
                           <TableCell className="font-bold text-primary">
-                            ${ping.amount?.toLocaleString() || '0.00'}
+                            ${(productInfo.price || ping.amount || 0).toLocaleString()}
                           </TableCell>
                           <TableCell className="text-right">
                             {getStatusBadge(ping.status)}
