@@ -155,23 +155,12 @@ export default function SellersPage() {
                 shops.map((shop) => (
                   <TableRow key={shop.id} className="hover:bg-muted/10 transition-colors group">
                     <TableCell className="pl-6">
-                      <div className="flex flex-col">
-                        <span className="font-bold text-slate-900">{shop.name}</span>
-                        <span className="text-[10px] font-mono text-muted-foreground uppercase">{shop.id.slice(0, 12)}</span>
-                      </div>
-                    </TableCell>
-                    <TableCell>
-                      <div className="flex flex-col">
-                        <span className="text-sm font-semibold text-slate-700">{shop.ownerName}</span>
-                        <span className="text-xs text-muted-foreground">{shop.contactEmail}</span>
-                      </div>
-                    </TableCell>
-                    <TableCell>{getStatusBadge(shop.status)}</TableCell>
-                    <TableCell className="text-xs font-medium text-slate-500">{formatDate(shop.createdAt).split(' ')[0]}</TableCell>
-                    <TableCell className="text-right pr-6 space-x-2">
                       <Dialog>
                         <DialogTrigger asChild>
-                          <Button size="sm" variant="outline" className="h-9 px-4 gap-2 rounded-xl shadow-sm hover:bg-primary/5 transition-all"><Info className="h-3.5 w-3.5" /> Dossier</Button>
+                          <button className="flex flex-col items-start text-left hover:text-primary transition-colors group/name outline-none">
+                            <span className="font-bold text-slate-900 group-hover/name:underline decoration-primary/30 underline-offset-4">{shop.name}</span>
+                            <span className="text-[10px] font-mono text-muted-foreground uppercase">{shop.id.slice(0, 12)}</span>
+                          </button>
                         </DialogTrigger>
                         <DialogContent className="sm:max-w-[800px] max-h-[90vh] p-0 overflow-hidden border-none shadow-2xl rounded-3xl">
                           <ScrollArea className="h-full max-h-[90vh]">
@@ -206,7 +195,10 @@ export default function SellersPage() {
                                         <div><p className="text-[9px] text-muted-foreground uppercase font-bold mb-1">Principal Agent</p><p className="font-bold text-sm text-slate-900">{shop.ownerName}</p></div>
                                       </div>
                                       <div className="pt-4 border-t border-slate-200/50 space-y-4">
-                                        <div><p className="text-[9px] text-muted-foreground uppercase font-bold mb-1">Contact Email</p><p className="font-bold text-sm text-primary underline">{shop.contactEmail}</p></div>
+                                        <div>
+                                          <p className="text-[9px] text-muted-foreground uppercase font-bold mb-1">Contact Email</p>
+                                          <p className="font-bold text-sm text-primary underline">{shop.contactEmail}</p>
+                                        </div>
                                         <div><p className="text-[9px] text-muted-foreground uppercase font-bold mb-1">Contact Number</p><p className="font-bold text-sm text-slate-900 flex items-center gap-2"><Phone className="h-3.5 w-3.5 text-slate-400" /> {shop.contactNumber || "N/A"}</p></div>
                                       </div>
                                     </div>
@@ -283,7 +275,16 @@ export default function SellersPage() {
                           </ScrollArea>
                         </DialogContent>
                       </Dialog>
-                      
+                    </TableCell>
+                    <TableCell>
+                      <div className="flex flex-col">
+                        <span className="text-sm font-semibold text-slate-700">{shop.ownerName}</span>
+                        <span className="text-xs text-muted-foreground">{shop.contactEmail}</span>
+                      </div>
+                    </TableCell>
+                    <TableCell>{getStatusBadge(shop.status)}</TableCell>
+                    <TableCell className="text-xs font-medium text-slate-500">{formatDate(shop.createdAt).split(' ')[0]}</TableCell>
+                    <TableCell className="text-right pr-6 space-x-2">
                       {shop.status !== "approved" && shop.status !== "active" ? (
                         <Button size="sm" variant="outline" className="h-9 gap-2 rounded-xl border-emerald-500/50 text-emerald-600 hover:bg-emerald-500/10 hover:text-emerald-700 transition-all font-bold text-xs" onClick={() => handleUpdateStatus(shop.id, "approved")}><CheckCircle2 className="h-3.5 w-3.5" /> Approve</Button>
                       ) : (
