@@ -62,8 +62,9 @@ export default function PendingShopsPage() {
   const [selectedShop, setSelectedShop] = useState<PendingShop | null>(null);
 
   useEffect(() => {
-    // Real-time listener for pending shops
+    // Real-time listener for shops with status == 'pending'
     const q = query(collection(db, "shops"), where("status", "==", "pending"));
+    
     const unsubscribe = onSnapshot(q, (snapshot) => {
       const shopData = snapshot.docs.map(doc => ({
         id: doc.id,
@@ -72,7 +73,6 @@ export default function PendingShopsPage() {
       setShops(shopData);
       setLoading(false);
     }, (error) => {
-      // Centralized error listener handles this
       setLoading(false);
     });
 
@@ -81,6 +81,7 @@ export default function PendingShopsPage() {
 
   const handleUpdateStatus = (shopId: string, newStatus: string) => {
     const docRef = doc(db, "shops", shopId);
+    // Non-blocking update pattern for responsive UI
     updateDocumentNonBlocking(docRef, { status: newStatus });
     setSelectedShop(null);
   };
@@ -115,10 +116,10 @@ export default function PendingShopsPage() {
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-2">
               <Store className="h-5 w-5 text-primary" />
-              <CardTitle>Applications List</CardTitle>
+              <CardTitle>Pending Applications</CardTitle>
             </div>
             <Badge variant="secondary" className="font-mono bg-primary/10 text-primary border-primary/20">
-              {shops.length} Pending Approval
+              {shops.length} Awaiting Review
             </Badge>
           </div>
           <CardDescription>Click details to review the merchant dossier and make an approval decision.</CardDescription>
@@ -130,7 +131,7 @@ export default function PendingShopsPage() {
                 <TableHead>Shop Name</TableHead>
                 <TableHead>Owner & Contact</TableHead>
                 <TableHead>Location</TableHead>
-                <TableHead className="text-right">Decision</TableHead>
+                <TableHead className="text-right">Action</TableHead>
               </TableRow>
             </TableHeader>
             <TableBody>
@@ -180,7 +181,7 @@ export default function PendingShopsPage() {
                             className="hover:bg-primary/5 border-primary/20 text-primary"
                           >
                             <Info className="h-4 w-4 mr-2" />
-                            Review Dossier
+                            Details
                           </Button>
                         </DialogTrigger>
                         <DialogContent className="sm:max-w-[550px]">
@@ -249,14 +250,14 @@ export default function PendingShopsPage() {
                               className="flex-1 sm:flex-none text-destructive border-destructive/30 hover:bg-destructive/10 hover:text-destructive transition-all"
                             >
                               <XCircle className="h-4 w-4 mr-2" />
-                              Reject Registration
+                              Reject
                             </Button>
                             <Button 
                               onClick={() => handleUpdateStatus(shop.id, 'approved')}
                               className="flex-1 sm:flex-none bg-emerald-600 hover:bg-emerald-700 text-white shadow-lg shadow-emerald-500/20 transition-all active:scale-95"
                             >
                               <CheckCircle2 className="h-4 w-4 mr-2" />
-                              Approve Merchant
+                              Approve
                             </Button>
                           </DialogFooter>
                         </DialogContent>
