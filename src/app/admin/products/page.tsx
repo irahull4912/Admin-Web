@@ -112,8 +112,10 @@ export default function ProductsManagementPage() {
     }
   };
 
+  // Precise calculations as requested
   const totalProductsCount = products.length;
-  const activeProductsCount = products.filter(p => p.status?.toLowerCase() === 'active').length;
+  const activeProductsCount = products.filter(p => (p.status || "").toLowerCase() === 'active').length;
+  
   const averagePriceValue = products.length > 0 
     ? products.reduce((acc, p) => acc + (p.price || 0), 0) / products.length 
     : 0;
@@ -131,7 +133,7 @@ export default function ProductsManagementPage() {
   return (
     <div className="space-y-8 animate-in fade-in slide-in-from-bottom-4 duration-500">
       <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
-        <div>
+        <div className="space-y-1">
           <div className="flex items-center gap-2 mb-2">
             <Link href="/admin/dashboard" className="text-muted-foreground hover:text-primary transition-colors">
               <ArrowLeft className="h-4 w-4" />
@@ -280,7 +282,7 @@ export default function ProductsManagementPage() {
                     <TableCell className="text-right pr-8">
                       <Badge className={cn(
                         "font-black uppercase text-[10px] px-3 py-1 shadow-none tracking-widest",
-                        product.status?.toLowerCase() === 'active' 
+                        (product.status || "").toLowerCase() === 'active' 
                           ? "bg-emerald-500/10 text-emerald-600 border-emerald-500/20" 
                           : "bg-amber-500/10 text-amber-600 border-amber-500/20"
                       )}>
