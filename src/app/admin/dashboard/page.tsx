@@ -9,13 +9,11 @@ import {
   query, 
   where,
   orderBy, 
-  limit, 
-  Timestamp, 
   collectionGroup,
-  onSnapshot,
-  updateDoc
+  onSnapshot
 } from "firebase/firestore";
 import { db } from "@/lib/firebase";
+import { updateDocumentNonBlocking } from "@/firebase/non-blocking-updates";
 import { StatCard } from "../components/stat-card";
 import { 
   Users, 
@@ -30,7 +28,8 @@ import {
   XCircle,
   MapPin,
   Phone,
-  Info
+  Info,
+  ClockAlert
 } from "lucide-react";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { 
@@ -52,8 +51,6 @@ import {
   DialogTitle, 
   DialogTrigger 
 } from "@/components/ui/dialog";
-import { errorEmitter } from "@/firebase/error-emitter";
-import { FirestorePermissionError } from "@/firebase/errors";
 import Image from "next/image";
 
 interface PendingShop {
@@ -82,7 +79,6 @@ export default function AdminDashboardPage() {
   const [pendingShops, setPendingShops] = useState<PendingShop[]>([]);
   const [selectedShop, setSelectedShop] = useState<PendingShop | null>(null);
 
-  // Ping statuses
   const [pingStats, setPingStats] = useState({
     pending: 0,
     confirmed: 0,
@@ -106,7 +102,6 @@ export default function AdminDashboardPage() {
       try {
         setLoading(true);
         
-        // 1. Fetch core entities
         const [usersSnap, productsSnap] = await Promise.all([
           getDocs(collection(db, "users")),
           getDocs(collectionGroup(db, "products")), 
@@ -115,7 +110,6 @@ export default function AdminDashboardPage() {
         setTotalUsers(usersSnap.size);
         setTotalProducts(productsSnap.size);
 
-        // 2. Fetch Pings (strictly using createdAt as per requirements)
         const pingsSnap = await getDocs(query(collection(db, "pings"), orderBy("createdAt", "desc")));
         
         let revenue = 0;
@@ -146,7 +140,7 @@ export default function AdminDashboardPage() {
         setPingStats(stats);
 
       } catch (error) {
-        console.error("General dashboard error:", error);
+        // Silently handled as per guidelines - centralized listener catches permission errors
       } finally {
         setLoading(false);
       }
@@ -158,15 +152,7 @@ export default function AdminDashboardPage() {
 
   const handleUpdateShopStatus = (shopId: string, newStatus: string) => {
     const docRef = doc(db, "shops", shopId);
-    updateDoc(docRef, { status: newStatus })
-      .catch(async (e) => {
-        const permissionError = new FirestorePermissionError({
-          path: docRef.path,
-          operation: 'update',
-          requestResourceData: { status: newStatus }
-        });
-        errorEmitter.emit('permission-error', permissionError);
-      });
+    updateDocumentNonBlocking(docRef, { status: newStatus });
     setSelectedShop(null);
   };
 
@@ -192,12 +178,12 @@ export default function AdminDashboardPage() {
           trendType="positive"
         />
         <StatCard 
-          label="Live Products" 
-          value={loading ? "..." : totalProducts.toLocaleString()} 
-          icon={Package} 
-          trend="+8.4%" 
-          trendType="positive"
-          href="/admin/products"
+          label="Pending Approvals" 
+          value={pendingShops.length.toLocaleString()} 
+          icon={ClockAlert} 
+          trend={pendingShops.length > 0 ? "Action Required" : "All Clear"}
+          trendType={pendingShops.length > 0 ? "negative" : "positive"}
+          href="/admin/shops/pending"
         />
         <StatCard 
           label="Total Users" 
@@ -238,13 +224,12 @@ export default function AdminDashboardPage() {
       </div>
 
       <div className="grid gap-6 md:grid-cols-1">
-        {/* Shop Approvals */}
         <Card className="border-border bg-card/40 backdrop-blur overflow-hidden">
           <CardHeader>
             <div className="flex items-center justify-between">
               <div>
                 <CardTitle className="text-xl">Shop Approvals</CardTitle>
-                <CardDescription>Manage new merchant registrations.</CardDescription>
+                <CardDescription>Manage new merchant registrations in real-time.</CardDescription>
               </div>
               <Store className="h-5 w-5 text-primary" />
             </div>
@@ -304,7 +289,7 @@ export default function AdminDashboardPage() {
                                   <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">Location</p>
                                   <div className="flex items-center gap-1.5 font-medium">
                                     <MapPin className="h-3.5 w-3.5 text-primary" />
-                                    {shop.location?.street}, {shop.location?.city}
+                                    {shop.location ? `${shop.location.street}, ${shop.location.city}` : "N/A"}
                                   </div>
                                 </div>
                               </div>

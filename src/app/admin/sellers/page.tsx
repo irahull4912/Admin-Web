@@ -2,8 +2,9 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { collection, query, onSnapshot, doc, updateDoc } from "firebase/firestore";
+import { collection, query, onSnapshot, doc } from "firebase/firestore";
 import { db } from "@/lib/firebase";
+import { updateDocumentNonBlocking } from "@/firebase/non-blocking-updates";
 import { 
   Table, 
   TableBody, 
@@ -16,7 +17,6 @@ import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Store, CheckCircle2, XCircle, Loader2 } from "lucide-react";
-import { toast } from "@/hooks/use-toast";
 
 interface Seller {
   id: string;
@@ -31,7 +31,7 @@ export default function SellersPage() {
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    const q = query(collection(db, "sellers"));
+    const q = query(collection(db, "shops")); // Corrected from "sellers" to match backend.json which maps shops collection
     const unsubscribe = onSnapshot(q, (snapshot) => {
       const sellerData = snapshot.docs.map(doc => ({
         id: doc.id,
@@ -40,29 +40,16 @@ export default function SellersPage() {
       setSellers(sellerData);
       setLoading(false);
     }, (error) => {
-      console.error("Error fetching sellers:", error);
+      // Handled by centralized listener
       setLoading(false);
     });
 
     return () => unsubscribe();
   }, []);
 
-  const updateSellerStatus = async (sellerId: string, newStatus: string) => {
-    try {
-      const sellerRef = doc(db, "sellers", sellerId);
-      await updateDoc(sellerRef, { status: newStatus });
-      toast({
-        title: "Success",
-        description: `Seller status updated to ${newStatus}`,
-      });
-    } catch (error) {
-      console.error("Error updating seller status:", error);
-      toast({
-        variant: "destructive",
-        title: "Error",
-        description: "Failed to update seller status",
-      });
-    }
+  const handleUpdateStatus = (sellerId: string, newStatus: string) => {
+    const docRef = doc(db, "shops", sellerId);
+    updateDocumentNonBlocking(docRef, { status: newStatus });
   };
 
   if (loading) {
@@ -112,18 +99,18 @@ export default function SellersPage() {
                     <TableCell className="font-medium">{seller.name}</TableCell>
                     <TableCell>{seller.contactEmail}</TableCell>
                     <TableCell>
-                      <Badge variant={seller.status === "Active" ? "default" : "secondary"}>
+                      <Badge variant={seller.status?.toLowerCase() === "active" || seller.status?.toLowerCase() === "approved" ? "default" : "secondary"}>
                         {seller.status}
                       </Badge>
                     </TableCell>
-                    <TableCell>{new Date(seller.registrationDate).toLocaleDateString()}</TableCell>
+                    <TableCell>{seller.registrationDate ? new Date(seller.registrationDate).toLocaleDateString() : 'N/A'}</TableCell>
                     <TableCell className="text-right space-x-2">
-                      {seller.status !== "Active" && (
+                      {seller.status !== "Active" && seller.status !== "approved" && (
                         <Button 
                           size="sm" 
                           variant="outline" 
                           className="h-8 gap-1 border-emerald-500/50 text-emerald-500 hover:bg-emerald-500/10"
-                          onClick={() => updateSellerStatus(seller.id, "Active")}
+                          onClick={() => handleUpdateStatus(seller.id, "approved")}
                         >
                           <CheckCircle2 className="h-3.5 w-3.5" />
                           Approve
@@ -134,7 +121,7 @@ export default function SellersPage() {
                           size="sm" 
                           variant="outline" 
                           className="h-8 gap-1 border-destructive/50 text-destructive hover:bg-destructive/10"
-                          onClick={() => updateSellerStatus(seller.id, "Suspended")}
+                          onClick={() => handleUpdateStatus(seller.id, "suspended")}
                         >
                           <XCircle className="h-3.5 w-3.5" />
                           Suspend
