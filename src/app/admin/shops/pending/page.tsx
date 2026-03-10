@@ -241,7 +241,7 @@ export default function PendingShopsPage() {
                                     <div className="grid gap-5 bg-slate-50/50 p-6 rounded-2xl border border-slate-100 shadow-sm">
                                       <div><p className="text-[10px] text-muted-foreground uppercase font-black mb-1">Principal Official</p><p className="font-black text-base text-slate-900">{shop.ownerName}</p></div>
                                       <div className="pt-4 border-t border-slate-200/50 space-y-4">
-                                        <div><p className="text-[10px] text-muted-foreground uppercase font-black mb-1">Registration Email</p><p className="font-black text-sm text-primary underline decoration-2 underline-offset-4">{shop.contactEmail}</p></div>
+                                        <div><p className="text-[10px] text-muted-foreground uppercase font-black mb-1">Contact Email</p><p className="font-black text-sm text-primary underline decoration-2 underline-offset-4">{shop.contactEmail}</p></div>
                                         <div><p className="text-[10px] text-muted-foreground uppercase font-black mb-1">Validated Phone</p><p className="font-black text-sm text-slate-900 flex items-center gap-2"><Phone className="h-4 w-4 text-slate-400" /> {shop.contactNumber || "Not Provided"}</p></div>
                                       </div>
                                     </div>

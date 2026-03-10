@@ -28,7 +28,8 @@ import {
   MapPin,
   Phone,
   Info,
-  ClockAlert
+  ClockAlert,
+  Mail
 } from "lucide-react";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { 
@@ -281,7 +282,7 @@ export default function AdminDashboardPage() {
                                   <p className="font-medium">{shop.ownerName || "N/A"}</p>
                                 </div>
                                 <div className="space-y-1">
-                                  <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">Registration Email</p>
+                                  <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">Contact Email</p>
                                   <div className="flex items-center gap-1.5 font-medium truncate">
                                     <Mail className="h-3.5 w-3.5 text-primary" />
                                     {shop.contactEmail}
@@ -325,7 +326,7 @@ export default function AdminDashboardPage() {
                                 Reject
                               </Button>
                               <Button 
-                                onClick={() => handleUpdateStatus(shop.id, 'approved')}
+                                onClick={() => handleUpdateShopStatus(shop.id, 'approved')}
                                 className="flex-1 sm:flex-none bg-emerald-600 hover:bg-emerald-700 text-white"
                               >
                                 <CheckCircle2 className="h-4 w-4 mr-2" />
