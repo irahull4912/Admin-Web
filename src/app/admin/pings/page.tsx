@@ -59,7 +59,6 @@ export default function PingsManagementPage() {
 
         const users: Record<string, string> = {};
         usersSnap.forEach(doc => {
-          // Store email as requested
           users[doc.id] = doc.data().email || "No Email";
         });
 
@@ -255,10 +254,20 @@ export default function PingsManagementPage() {
                         {formatPingDate(ping.createdAt)}
                       </TableCell>
                       <TableCell>
-                        <div className="flex items-center gap-2">
-                          <Mail className="h-3 w-3 text-muted-foreground" />
-                          <span className="font-medium text-foreground truncate max-w-[180px]" title={buyerEmail}>{buyerEmail}</span>
-                        </div>
+                        {buyerEmail !== "Guest (No Email)" && buyerEmail !== "No Email" ? (
+                          <Link 
+                            href={`/admin/users?search=${encodeURIComponent(buyerEmail)}`} 
+                            className="flex items-center gap-2 hover:text-primary transition-colors group"
+                          >
+                            <Mail className="h-3 w-3 text-muted-foreground group-hover:text-primary" />
+                            <span className="font-medium truncate max-w-[180px] hover:underline" title={buyerEmail}>{buyerEmail}</span>
+                          </Link>
+                        ) : (
+                          <div className="flex items-center gap-2 text-muted-foreground">
+                            <Mail className="h-3 w-3" />
+                            <span className="font-medium truncate max-w-[180px]">{buyerEmail}</span>
+                          </div>
+                        )}
                       </TableCell>
                       <TableCell>
                         <div className="flex items-center gap-2">

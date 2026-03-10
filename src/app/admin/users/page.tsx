@@ -1,7 +1,6 @@
-
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect, useCallback, Suspense } from "react";
 import { collection, query, where, getDocs, limit } from "firebase/firestore";
 import { db } from "@/lib/firebase";
 import { Input } from "@/components/ui/input";
@@ -16,7 +15,8 @@ import {
   TableRow 
 } from "@/components/ui/table";
 import { Badge } from "@/components/ui/badge";
-import { Search, User, ShoppingBag, CreditCard, Loader2 } from "lucide-react";
+import { Search, User, ShoppingBag, Loader2 } from "lucide-react";
+import { useSearchParams } from "next/navigation";
 
 interface UserProfile {
   id: string;
@@ -34,22 +34,32 @@ interface Purchase {
   status: string;
 }
 
-export default function UsersPage() {
+function UserManagementContent() {
   const [searchTerm, setSearchTerm] = useState("");
   const [foundUser, setFoundUser] = useState<UserProfile | null>(null);
   const [purchases, setPurchases] = useState<Purchase[]>([]);
   const [loading, setLoading] = useState(false);
+  const searchParams = useSearchParams();
 
-  const handleSearch = async () => {
-    if (!searchTerm) return;
+  const handleSearch = useCallback(async (customTerm?: string) => {
+    const term = customTerm || searchTerm;
+    if (!term) return;
+    
     setLoading(true);
     setFoundUser(null);
     setPurchases([]);
 
     try {
       const usersRef = collection(db, "users");
-      const q = query(usersRef, where("email", "==", searchTerm), limit(1));
-      const snapshot = await getDocs(q);
+      // Search by email
+      let q = query(usersRef, where("email", "==", term), limit(1));
+      let snapshot = await getDocs(q);
+
+      if (snapshot.empty) {
+        // Try searching by ID if email doesn't work
+        q = query(usersRef, where("id", "==", term), limit(1));
+        snapshot = await getDocs(q);
+      }
 
       if (!snapshot.empty) {
         const userData = { id: snapshot.docs[0].id, ...snapshot.docs[0].data() } as UserProfile;
@@ -63,23 +73,22 @@ export default function UsersPage() {
           ...doc.data()
         })) as Purchase[];
         setPurchases(purchaseData);
-      } else {
-        // Try searching by ID if email doesn't work
-        const docRef = await getDocs(query(usersRef, where("id", "==", searchTerm), limit(1)));
-        if (!docRef.empty) {
-          const userData = { id: docRef.docs[0].id, ...docRef.docs[0].data() } as UserProfile;
-          setFoundUser(userData);
-          const purchasesRef = collection(db, "users", userData.id, "purchases");
-          const purchasesSnapshot = await getDocs(purchasesRef);
-          setPurchases(purchasesSnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() })) as Purchase[]);
-        }
       }
     } catch (error) {
       console.error("Error searching user:", error);
     } finally {
       setLoading(false);
     }
-  };
+  }, [searchTerm]);
+
+  // Handle search parameter from URL
+  useEffect(() => {
+    const urlSearch = searchParams.get("search");
+    if (urlSearch) {
+      setSearchTerm(urlSearch);
+      handleSearch(urlSearch);
+    }
+  }, [searchParams, handleSearch]);
 
   return (
     <div className="space-y-8 animate-in fade-in slide-in-from-bottom-4 duration-500">
@@ -99,7 +108,7 @@ export default function UsersPage() {
             onKeyDown={(e) => e.key === 'Enter' && handleSearch()}
           />
         </div>
-        <Button onClick={handleSearch} disabled={loading} size="lg">
+        <Button onClick={() => handleSearch()} disabled={loading} size="lg">
           {loading ? <Loader2 className="h-4 w-4 animate-spin mr-2" /> : "Search"}
         </Button>
       </div>
@@ -130,7 +139,9 @@ export default function UsersPage() {
               </div>
               <div className="space-y-1">
                 <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">Registered On</p>
-                <p className="text-foreground">{new Date(foundUser.registrationDate).toLocaleDateString()}</p>
+                <p className="text-foreground">
+                  {foundUser.registrationDate ? new Date(foundUser.registrationDate).toLocaleDateString() : 'N/A'}
+                </p>
               </div>
             </CardContent>
           </Card>
@@ -162,8 +173,10 @@ export default function UsersPage() {
                   ) : (
                     purchases.map((purchase) => (
                       <TableRow key={purchase.id}>
-                        <TableCell>{new Date(purchase.purchaseDate).toLocaleDateString()}</TableCell>
-                        <TableCell>${purchase.totalPrice.toFixed(2)}</TableCell>
+                        <TableCell>
+                          {purchase.purchaseDate ? new Date(purchase.purchaseDate).toLocaleDateString() : 'N/A'}
+                        </TableCell>
+                        <TableCell>${purchase.totalPrice?.toFixed(2) || '0.00'}</TableCell>
                         <TableCell>
                           <Badge variant={purchase.status === "Completed" ? "default" : "secondary"}>
                             {purchase.status}
@@ -186,5 +199,13 @@ export default function UsersPage() {
         )
       )}
     </div>
+  );
+}
+
+export default function UsersPage() {
+  return (
+    <Suspense fallback={<div className="flex h-96 items-center justify-center"><Loader2 className="h-8 w-8 animate-spin text-primary" /></div>}>
+      <UserManagementContent />
+    </Suspense>
   );
 }
