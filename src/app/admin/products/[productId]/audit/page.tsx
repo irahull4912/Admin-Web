@@ -17,12 +17,11 @@ import {
   Zap, 
   ArrowLeft, 
   Loader2, 
-  Package, 
   Mail, 
   Calendar, 
   Activity, 
-  User as UserIcon,
-  ShoppingCart
+  IndianRupee,
+  TrendingUp
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import Link from "next/link";
@@ -55,14 +54,14 @@ export default function ProductAuditPage({ params }: { params: Promise<{ product
       try {
         setLoading(true);
 
-        // Fetch Product Info
+        // Fetch Product Info using collectionGroup
         const productsSnap = await getDocs(collectionGroup(db, "products"));
         const productDoc = productsSnap.docs.find(d => d.id === productId);
         if (productDoc) {
           setProduct({ id: productDoc.id, ...productDoc.data() } as Product);
         }
 
-        // Real-time listener for pings
+        // Real-time listener for pings associated with this productId
         const q = query(
           collection(db, "pings"), 
           where("productId", "==", productId)
@@ -74,7 +73,7 @@ export default function ProductAuditPage({ params }: { params: Promise<{ product
             ...doc.data()
           })) as PingRecord[];
           
-          // Client-side sort
+          // Client-side sort to avoid requiring a composite index during dev
           const sortedPings = pingData.sort((a, b) => {
             const timeA = a.createdAt instanceof Timestamp ? a.createdAt.toMillis() : new Date(a.createdAt).getTime();
             const timeB = b.createdAt instanceof Timestamp ? b.createdAt.toMillis() : new Date(b.createdAt).getTime();
@@ -83,7 +82,7 @@ export default function ProductAuditPage({ params }: { params: Promise<{ product
 
           setPings(sortedPings);
 
-          // Resolve buyer emails
+          // Resolve buyer emails for the pings
           const uniqueBuyerIds = Array.from(new Set(sortedPings.map(p => p.buyerId)));
           if (uniqueBuyerIds.length > 0) {
             const usersSnap = await getDocs(collection(db, "users"));
@@ -111,10 +110,12 @@ export default function ProductAuditPage({ params }: { params: Promise<{ product
   const getStatusBadge = (status: string) => {
     const s = (status || "").toLowerCase().trim();
     if (['successful', 'completed', 'success'].includes(s)) return <Badge className="bg-emerald-500/10 text-emerald-500 border-emerald-500/20 uppercase font-bold text-[10px]">Successful</Badge>;
-    if (s === 'pending') return <Badge variant="secondary" className="bg-amber-500/10 text-amber-500 border-amber-500/20 uppercase font-bold text-[10px]">Pending</Badge>;
+    if (s === 'pending') return <Badge variant="secondary" className="bg-amber-500/10 text-amber-600 border-amber-500/20 uppercase font-bold text-[10px]">Pending</Badge>;
     if (s === 'cancelled') return <Badge variant="destructive" className="bg-destructive/10 text-destructive border-destructive/20 uppercase font-bold text-[10px]">Cancelled</Badge>;
     return <Badge variant="outline" className="uppercase font-bold text-[10px]">{status}</Badge>;
   };
+
+  const totalYield = pings.reduce((acc, p) => acc + (p.amount || 0), 0);
 
   if (loading) {
     return (
@@ -142,25 +143,41 @@ export default function ProductAuditPage({ params }: { params: Promise<{ product
       <div className="grid gap-6 sm:grid-cols-2 lg:grid-cols-4">
         <Card className="bg-white border-border/50 shadow-sm">
           <CardContent className="p-6">
-            <p className="text-[10px] font-bold text-muted-foreground uppercase tracking-widest mb-1">Total Yield</p>
-            <p className="text-3xl font-black text-slate-900">₹{pings.reduce((acc, p) => acc + (p.amount || 0), 0).toLocaleString()}</p>
+            <div className="flex items-center justify-between mb-2">
+              <p className="text-[10px] font-bold text-muted-foreground uppercase tracking-widest">Total Yield</p>
+              <IndianRupee className="h-4 w-4 text-primary opacity-50" />
+            </div>
+            <p className="text-3xl font-black text-slate-900">₹{totalYield.toLocaleString()}</p>
           </CardContent>
         </Card>
         <Card className="bg-white border-border/50 shadow-sm">
           <CardContent className="p-6">
-            <p className="text-[10px] font-bold text-muted-foreground uppercase tracking-widest mb-1">Transactions</p>
+            <div className="flex items-center justify-between mb-2">
+              <p className="text-[10px] font-bold text-muted-foreground uppercase tracking-widest">Volume</p>
+              <Zap className="h-4 w-4 text-amber-500 opacity-50" />
+            </div>
             <p className="text-3xl font-black text-slate-900">{pings.length}</p>
           </CardContent>
         </Card>
         <Card className="bg-white border-border/50 shadow-sm">
           <CardContent className="p-6">
-            <p className="text-[10px] font-bold text-muted-foreground uppercase tracking-widest mb-1">Brand Mapping</p>
-            <p className="text-xl font-bold text-slate-900">{product?.brand || "Generic"}</p>
+            <div className="flex items-center justify-between mb-2">
+              <p className="text-[10px] font-bold text-muted-foreground uppercase tracking-widest">Success Rate</p>
+              <TrendingUp className="h-4 w-4 text-emerald-500 opacity-50" />
+            </div>
+            <p className="text-3xl font-black text-slate-900">
+              {pings.length > 0 
+                ? `${((pings.filter(p => ['successful', 'completed', 'success'].includes(p.status.toLowerCase())).length / pings.length) * 100).toFixed(0)}%`
+                : "0%"}
+            </p>
           </CardContent>
         </Card>
         <Card className="bg-white border-border/50 shadow-sm">
           <CardContent className="p-6">
-            <p className="text-[10px] font-bold text-muted-foreground uppercase tracking-widest mb-1">Asset Status</p>
+            <div className="flex items-center justify-between mb-2">
+              <p className="text-[10px] font-bold text-muted-foreground uppercase tracking-widest">Asset Status</p>
+              <Activity className="h-4 w-4 text-blue-500 opacity-50" />
+            </div>
             <Badge className="bg-emerald-500 text-white font-black uppercase text-[10px] tracking-widest">Live Inventory</Badge>
           </CardContent>
         </Card>
@@ -169,10 +186,12 @@ export default function ProductAuditPage({ params }: { params: Promise<{ product
       <Card className="border-border bg-white shadow-sm overflow-hidden rounded-2xl">
         <CardHeader className="bg-slate-50/50 border-b py-6 px-8">
           <div className="flex items-center gap-3">
-            <Zap className="h-5 w-5 text-primary" />
+            <div className="bg-primary/10 p-2 rounded-lg">
+              <Calendar className="h-5 w-5 text-primary" />
+            </div>
             <div>
-              <CardTitle>Historical Performance Ledger</CardTitle>
-              <CardDescription>Resolved audit trail mapping buyer identities to successful yields.</CardDescription>
+              <CardTitle className="text-xl">Historical Performance Ledger</CardTitle>
+              <CardDescription className="text-[10px] uppercase font-bold tracking-widest text-muted-foreground">Resolved audit trail mapping buyer identities to successful yields.</CardDescription>
             </div>
           </div>
         </CardHeader>
@@ -180,22 +199,22 @@ export default function ProductAuditPage({ params }: { params: Promise<{ product
           <Table>
             <TableHeader className="bg-slate-50/30">
               <TableRow>
-                <TableHead className="pl-8 py-5 font-bold uppercase text-[10px] tracking-widest">Timestamp</TableHead>
-                <TableHead className="py-5 font-bold uppercase text-[10px] tracking-widest">Buyer Entity (Email)</TableHead>
-                <TableHead className="py-5 font-bold uppercase text-[10px] tracking-widest">Transaction yield</TableHead>
-                <TableHead className="text-right pr-8 py-5 font-bold uppercase text-[10px] tracking-widest">Status</TableHead>
+                <TableHead className="pl-8 py-5 font-bold uppercase text-[10px] tracking-widest text-slate-500">Timestamp</TableHead>
+                <TableHead className="py-5 font-bold uppercase text-[10px] tracking-widest text-slate-500">Buyer Entity (Email)</TableHead>
+                <TableHead className="py-5 font-bold uppercase text-[10px] tracking-widest text-slate-500">Transaction yield</TableHead>
+                <TableHead className="text-right pr-8 py-5 font-bold uppercase text-[10px] tracking-widest text-slate-500">Status</TableHead>
               </TableRow>
             </TableHeader>
             <TableBody>
               {pings.length === 0 ? (
                 <TableRow>
-                  <TableCell colSpan={4} className="h-48 text-center text-muted-foreground italic">
+                  <TableCell colSpan={4} className="h-48 text-center text-muted-foreground italic font-medium">
                     No transaction pings found for this specific asset.
                   </TableCell>
                 </TableRow>
               ) : (
                 pings.map((ping) => (
-                  <TableRow key={ping.id} className="hover:bg-muted/10 transition-colors">
+                  <TableRow key={ping.id} className="hover:bg-muted/10 transition-colors group">
                     <TableCell className="pl-8 text-xs font-mono font-medium text-muted-foreground">
                       {ping.createdAt instanceof Timestamp ? format(ping.createdAt.toDate(), "MMM d, yyyy HH:mm") : "N/A"}
                     </TableCell>
