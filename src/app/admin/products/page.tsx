@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { collectionGroup, getDocs, query, orderBy, Timestamp, updateDoc, collection } from "firebase/firestore";
+import { collectionGroup, getDocs, query, orderBy, Timestamp, updateDoc, collection, where, onSnapshot } from "firebase/firestore";
 import { db } from "@/lib/firebase";
 import { 
   Table, 
@@ -36,7 +36,9 @@ import {
   TicketPercent,
   Box,
   TrendingDown,
-  Info
+  Info,
+  Zap,
+  ShoppingCart
 } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
@@ -103,6 +105,122 @@ interface ShopProfile {
   street?: string;
 }
 
+interface PingRecord {
+  id: string;
+  createdAt: any;
+  buyerId: string;
+  status: string;
+  amount: number;
+}
+
+/**
+ * Embedded component to handle product-specific transaction auditing.
+ */
+function ProductAuditTrail({ productId }: { productId: string }) {
+  const [pings, setPings] = useState<PingRecord[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [buyerEmails, setBuyerEmails] = useState<Record<string, string>>({});
+
+  useEffect(() => {
+    if (!productId) return;
+
+    const q = query(
+      collection(db, "pings"), 
+      where("productId", "==", productId), 
+      orderBy("createdAt", "desc")
+    );
+
+    const unsubscribe = onSnapshot(q, async (snapshot) => {
+      const pingData = snapshot.docs.map(doc => ({
+        id: doc.id,
+        ...doc.data()
+      })) as PingRecord[];
+      
+      setPings(pingData);
+      setLoading(false);
+
+      // Resolve buyer emails for these pings
+      const uniqueBuyerIds = Array.from(new Set(pingData.map(p => p.buyerId)));
+      if (uniqueBuyerIds.length > 0) {
+        const usersSnap = await getDocs(collection(db, "users"));
+        const emails: Record<string, string> = {};
+        usersSnap.forEach(doc => {
+          if (uniqueBuyerIds.includes(doc.id)) {
+            emails[doc.id] = doc.data().email || "No Email";
+          }
+        });
+        setBuyerEmails(prev => ({ ...prev, ...emails }));
+      }
+    });
+
+    return () => unsubscribe();
+  }, [productId]);
+
+  const getStatusBadge = (status: string) => {
+    const s = (status || "").toLowerCase().trim();
+    if (['successful', 'completed', 'success'].includes(s)) return <Badge className="bg-emerald-500/10 text-emerald-500 border-emerald-500/20 text-[9px] uppercase font-bold">Success</Badge>;
+    if (s === 'pending') return <Badge variant="secondary" className="bg-amber-500/10 text-amber-500 border-amber-500/20 text-[9px] uppercase font-bold">Pending</Badge>;
+    if (s === 'cancelled') return <Badge variant="destructive" className="bg-destructive/10 text-destructive border-destructive/20 text-[9px] uppercase font-bold">Cancelled</Badge>;
+    return <Badge variant="outline" className="text-[9px] uppercase font-bold">{status}</Badge>;
+  };
+
+  if (loading) {
+    return (
+      <div className="flex items-center justify-center p-8 bg-slate-50/50 rounded-2xl border border-dashed">
+        <Loader2 className="h-5 w-5 animate-spin text-primary mr-2" />
+        <span className="text-xs font-bold text-muted-foreground uppercase tracking-widest">Compiling Transaction Ledger...</span>
+      </div>
+    );
+  }
+
+  return (
+    <div className="space-y-4">
+      <h4 className="text-[10px] font-bold text-slate-400 uppercase tracking-widest flex items-center gap-2 px-1">
+        <Zap className="h-3.5 w-3.5 text-primary" /> Product Transaction Ledger
+      </h4>
+      
+      <div className="border border-slate-100 rounded-2xl overflow-hidden shadow-sm bg-white">
+        <Table>
+          <TableHeader className="bg-slate-50">
+            <TableRow>
+              <TableHead className="text-[9px] uppercase font-bold pl-6">Date</TableHead>
+              <TableHead className="text-[9px] uppercase font-bold">Buyer Email</TableHead>
+              <TableHead className="text-[9px] uppercase font-bold">Yield</TableHead>
+              <TableHead className="text-[9px] uppercase font-bold text-right pr-6">Status</TableHead>
+            </TableRow>
+          </TableHeader>
+          <TableBody>
+            {pings.length === 0 ? (
+              <TableRow>
+                <TableCell colSpan={4} className="h-24 text-center text-xs text-muted-foreground italic">
+                  No transaction pings detected for this product ID.
+                </TableCell>
+              </TableRow>
+            ) : (
+              pings.map((ping) => (
+                <TableRow key={ping.id} className="hover:bg-slate-50/50 border-slate-50">
+                  <TableCell className="py-3 pl-6 text-[10px] font-mono font-medium text-slate-500">
+                    {ping.createdAt instanceof Timestamp ? format(ping.createdAt.toDate(), "MMM d, HH:mm") : "N/A"}
+                  </TableCell>
+                  <TableCell className="text-xs font-bold text-slate-700">
+                    {buyerEmails[ping.buyerId] || "Resolving..."}
+                  </TableCell>
+                  <TableCell className="font-black text-primary text-xs">
+                    ₹{(ping.amount || 0).toLocaleString()}
+                  </TableCell>
+                  <TableCell className="text-right py-3 pr-6">
+                    {getStatusBadge(ping.status)}
+                  </TableCell>
+                </TableRow>
+              ))
+            )}
+          </TableBody>
+        </Table>
+      </div>
+    </div>
+  );
+}
+
 export default function ProductsManagementPage() {
   const [products, setProducts] = useState<Product[]>([]);
   const [filteredProducts, setFilteredProducts] = useState<Product[]>([]);
@@ -152,7 +270,6 @@ export default function ProductsManagementPage() {
     fetchProductsData();
   }, []);
 
-  // Helper to find a shop by any potential ID field
   const getShopForProduct = (product: Product) => {
     const idsToTry = [
       product.shopId, 
@@ -384,7 +501,7 @@ export default function ProductsManagementPage() {
                           </DialogTrigger>
                           <DialogContent className="sm:max-w-[1000px] max-h-[95vh] p-0 overflow-hidden border-none shadow-2xl rounded-3xl">
                             <ScrollArea className="h-full max-h-[95vh]">
-                              <div className="p-8 space-y-8 pb-16">
+                              <div className="p-8 space-y-10 pb-16">
                                 <DialogHeader>
                                   <div className="flex items-center justify-between mb-4">
                                     <div className="flex items-center gap-3">
@@ -565,18 +682,22 @@ export default function ProductsManagementPage() {
                                   </div>
                                 </section>
 
+                                {/* Product-Specific Audit Trail */}
+                                <ProductAuditTrail productId={product.id} />
+
                                 <div className="flex gap-4 pt-8 border-t border-slate-100 items-center justify-between">
                                   <div className="flex items-center gap-4 text-xs text-muted-foreground font-medium">
                                     <div className="flex items-center gap-1.5"><Calendar className="h-3.5 w-3.5" /> Registered: {formatProductDate(product.createdAt)}</div>
                                     <div className="flex items-center gap-1.5"><Clock className="h-3.5 w-3.5" /> Last Update: {formatProductDate(product.updatedAt || product.createdAt)}</div>
                                   </div>
                                   <Button 
-                                    className="h-12 px-8 rounded-2xl bg-primary hover:bg-primary/90 text-white font-black uppercase tracking-widest text-[10px] shadow-xl shadow-primary/20 transition-all active:scale-95"
-                                    asChild
+                                    className="h-12 px-8 rounded-2xl bg-slate-900 hover:bg-slate-800 text-white font-black uppercase tracking-widest text-[10px] shadow-xl shadow-slate-900/20 transition-all active:scale-95"
+                                    onClick={() => {
+                                      const element = document.getElementById('audit-ledger');
+                                      element?.scrollIntoView({ behavior: 'smooth' });
+                                    }}
                                   >
-                                    <Link href={`/admin/pings?search=${encodeURIComponent(product.name)}`}>
-                                      <Activity className="h-4 w-4 mr-2.5" /> View Audit Pings
-                                    </Link>
+                                    <Activity className="h-4 w-4 mr-2.5" /> Inspect Full Audit
                                   </Button>
                                 </div>
                               </div>
