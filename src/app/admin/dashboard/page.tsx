@@ -1,4 +1,3 @@
-
 "use client";
 
 import { useEffect, useState } from "react";
@@ -282,10 +281,10 @@ export default function AdminDashboardPage() {
                                   <p className="font-medium">{shop.ownerName || "N/A"}</p>
                                 </div>
                                 <div className="space-y-1">
-                                  <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">Contact Phone</p>
-                                  <div className="flex items-center gap-1.5 font-medium">
-                                    <Phone className="h-3.5 w-3.5 text-primary" />
-                                    {shop.contactNumber || "N/A"}
+                                  <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">Registration Email</p>
+                                  <div className="flex items-center gap-1.5 font-medium truncate">
+                                    <Mail className="h-3.5 w-3.5 text-primary" />
+                                    {shop.contactEmail}
                                   </div>
                                 </div>
                                 <div className="space-y-1 col-span-2">
@@ -326,7 +325,7 @@ export default function AdminDashboardPage() {
                                 Reject
                               </Button>
                               <Button 
-                                onClick={() => handleUpdateShopStatus(shop.id, 'approved')}
+                                onClick={() => handleUpdateStatus(shop.id, 'approved')}
                                 className="flex-1 sm:flex-none bg-emerald-600 hover:bg-emerald-700 text-white"
                               >
                                 <CheckCircle2 className="h-4 w-4 mr-2" />

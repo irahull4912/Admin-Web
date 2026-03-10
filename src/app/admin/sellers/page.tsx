@@ -1,4 +1,3 @@
-
 "use client";
 
 import { useEffect, useState } from "react";
@@ -207,7 +206,7 @@ export default function SellersPage() {
                                         <div><p className="text-[9px] text-muted-foreground uppercase font-bold mb-1">Principal Agent</p><p className="font-bold text-sm text-slate-900">{shop.ownerName}</p></div>
                                       </div>
                                       <div className="pt-4 border-t border-slate-200/50 space-y-4">
-                                        <div><p className="text-[9px] text-muted-foreground uppercase font-bold mb-1">Contact Email</p><p className="font-bold text-sm text-primary underline">{shop.contactEmail}</p></div>
+                                        <div><p className="text-[9px] text-muted-foreground uppercase font-bold mb-1">Registration Email</p><p className="font-bold text-sm text-primary underline">{shop.contactEmail}</p></div>
                                         <div><p className="text-[9px] text-muted-foreground uppercase font-bold mb-1">Contact Number</p><p className="font-bold text-sm text-slate-900 flex items-center gap-2"><Phone className="h-3.5 w-3.5 text-slate-400" /> {shop.contactNumber || "N/A"}</p></div>
                                       </div>
                                     </div>
