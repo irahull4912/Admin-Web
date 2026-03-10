@@ -25,7 +25,12 @@ interface PingRecord {
   buyerId: string;
   shopId?: string;
   sellerId?: string; 
-  items?: { productId: string }[];
+  items?: { 
+    productId: string; 
+    name?: string; 
+    price?: number; 
+    mrp?: number; 
+  }[];
   productId?: string; 
   status: string;
   amount: number;
@@ -105,8 +110,8 @@ export default function PingsManagementPage() {
       const buyerEmail = resolvedData.users[ping.buyerId] || "";
       const shopIdForLookup = ping.shopId || ping.sellerId || "";
       const shopName = resolvedData.shops[shopIdForLookup] || "";
-      const effectiveProductId = ping.items?.[0]?.productId || ping.productId || "";
-      const productName = resolvedData.products[effectiveProductId]?.name || "";
+      const snapshotItem = ping.items?.[0];
+      const productName = snapshotItem?.name || resolvedData.products[ping.items?.[0]?.productId || ping.productId || ""]?.name || "";
       const status = ping.status || "";
       const pingId = ping.id || "";
       
@@ -246,7 +251,8 @@ export default function PingsManagementPage() {
                   const shopName = resolvedData.shops[targetShopId] || "Unknown Shop";
                   
                   const targetProductId = ping.items?.[0]?.productId || ping.productId || "";
-                  const productInfo = resolvedData.products[targetProductId] || { name: "Unknown Item", price: 0 };
+                  const productCatalogInfo = resolvedData.products[targetProductId] || { name: "Unknown Item", price: 0 };
+                  const snapshotItem = ping.items?.[0];
                   
                   return (
                     <TableRow key={ping.id} className="hover:bg-muted/20 transition-colors">
@@ -279,15 +285,19 @@ export default function PingsManagementPage() {
                         <div className="flex items-center gap-2">
                           <ShoppingCart className="h-3 w-3 text-primary/60" />
                           <div className="flex flex-col">
-                            <span className="font-semibold text-sm truncate max-w-[150px]">{productInfo.name}</span>
-                            <span className="text-[10px] text-muted-foreground font-mono">
-                              {targetProductId ? `${targetProductId.slice(0, 8)}...` : "N/A"}
+                            <span className="font-semibold text-sm truncate max-w-[150px]">
+                              {snapshotItem?.name || productCatalogInfo.name}
                             </span>
+                            {snapshotItem && (
+                              <span className="text-[10px] text-muted-foreground">
+                                ₹{snapshotItem.price ?? '0'} (MRP: ₹{snapshotItem.mrp ?? '0'})
+                              </span>
+                            )}
                           </div>
                         </div>
                       </TableCell>
                       <TableCell className="font-bold text-primary">
-                        ${(ping.amount || productInfo.price).toLocaleString()}
+                        ${(ping.amount || snapshotItem?.price || productCatalogInfo.price).toLocaleString()}
                       </TableCell>
                       <TableCell className="text-right">
                         {getStatusBadge(ping.status)}
