@@ -124,10 +124,10 @@ function ProductAuditTrail({ productId }: { productId: string }) {
   useEffect(() => {
     if (!productId) return;
 
+    // Simplified query to avoid composite index requirements
     const q = query(
       collection(db, "pings"), 
-      where("productId", "==", productId), 
-      orderBy("createdAt", "desc")
+      where("productId", "==", productId)
     );
 
     const unsubscribe = onSnapshot(q, async (snapshot) => {
@@ -136,11 +136,18 @@ function ProductAuditTrail({ productId }: { productId: string }) {
         ...doc.data()
       })) as PingRecord[];
       
-      setPings(pingData);
+      // Perform client-side sorting by creation date descending
+      const sortedPings = pingData.sort((a, b) => {
+        const timeA = a.createdAt instanceof Timestamp ? a.createdAt.toMillis() : new Date(a.createdAt).getTime();
+        const timeB = b.createdAt instanceof Timestamp ? b.createdAt.toMillis() : new Date(b.createdAt).getTime();
+        return timeB - timeA;
+      });
+
+      setPings(sortedPings);
       setLoading(false);
 
       // Resolve buyer emails for these pings
-      const uniqueBuyerIds = Array.from(new Set(pingData.map(p => p.buyerId)));
+      const uniqueBuyerIds = Array.from(new Set(sortedPings.map(p => p.buyerId)));
       if (uniqueBuyerIds.length > 0) {
         const usersSnap = await getDocs(collection(db, "users"));
         const emails: Record<string, string> = {};
@@ -587,7 +594,7 @@ export default function ProductsManagementPage() {
                                     {product.offers && product.offers.length > 0 && (
                                       <section className="space-y-4">
                                         <h4 className="text-[10px] font-bold text-slate-400 uppercase tracking-widest flex items-center gap-2 px-1"><TicketPercent className="h-3.5 w-3.5 text-amber-500" /> Promotional Campaigns</h4>
-                                        <div className="bg-amber-50/30 p-4 rounded-2xl border border-amber-100 space-y-2">
+                                        <div className="bg-amber-100/30 p-4 rounded-2xl border border-amber-100 space-y-2">
                                           {product.offers.map((offer, i) => (
                                             <div key={i} className="flex items-start gap-2 text-xs font-semibold text-amber-800 bg-white/50 p-2 rounded-lg border border-amber-100">
                                               <div className="h-1.5 w-1.5 rounded-full bg-amber-500 mt-1.5 shrink-0" />
