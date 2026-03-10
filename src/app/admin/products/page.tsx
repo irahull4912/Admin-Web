@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { collectionGroup, getDocs, query, orderBy, Timestamp, updateDoc } from "firebase/firestore";
+import { collectionGroup, getDocs, query, orderBy, Timestamp, updateDoc, collection } from "firebase/firestore";
 import { db } from "@/lib/firebase";
 import { 
   Table, 
@@ -36,41 +36,57 @@ interface Product {
 export default function ProductsManagementPage() {
   const [products, setProducts] = useState<Product[]>([]);
   const [filteredProducts, setFilteredProducts] = useState<Product[]>([]);
+  const [shopNames, setShopNames] = useState<Record<string, string>>({});
   const [loading, setLoading] = useState(true);
   const [updating, setUpdating] = useState(false);
   const [searchTerm, setSearchTerm] = useState("");
   const { toast } = useToast();
 
-  const fetchProducts = async () => {
+  const fetchProductsData = async () => {
     try {
       setLoading(true);
+      
+      // Fetch Shops for name resolution
+      const shopsSnap = await getDocs(collection(db, "shops"));
+      const shopsMap: Record<string, string> = {};
+      shopsSnap.forEach(doc => {
+        shopsMap[doc.id] = doc.data().name || "Unknown Shop";
+      });
+      setShopNames(shopsMap);
+
+      // Fetch Products
       const q = query(collectionGroup(db, "products"), orderBy("createdAt", "desc"));
       const snapshot = await getDocs(q);
       const productData = snapshot.docs.map(doc => ({
         id: doc.id,
         ...doc.data()
       })) as Product[];
+      
       setProducts(productData);
       setFilteredProducts(productData);
     } catch (error) {
-      console.error("Error fetching products:", error);
+      console.error("Error fetching products data:", error);
     } finally {
       setLoading(false);
     }
   };
 
   useEffect(() => {
-    fetchProducts();
+    fetchProductsData();
   }, []);
 
   useEffect(() => {
-    const results = products.filter(product => 
-      product.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      product.category.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      product.id.toLowerCase().includes(searchTerm.toLowerCase())
-    );
+    const results = products.filter(product => {
+      const shopName = shopNames[product.sellerId] || "";
+      return (
+        product.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
+        product.category.toLowerCase().includes(searchTerm.toLowerCase()) ||
+        shopName.toLowerCase().includes(searchTerm.toLowerCase()) ||
+        product.id.toLowerCase().includes(searchTerm.toLowerCase())
+      );
+    });
     setFilteredProducts(results);
-  }, [searchTerm, products]);
+  }, [searchTerm, products, shopNames]);
 
   const handleBulkUpdateStatus = async () => {
     setUpdating(true);
@@ -89,7 +105,7 @@ export default function ProductsManagementPage() {
         description: "All products updated to active status!",
       });
       
-      await fetchProducts();
+      await fetchProductsData();
     } catch (error) {
       console.error("Error updating products:", error);
       toast({
@@ -154,7 +170,7 @@ export default function ProductsManagementPage() {
           <div className="relative w-64">
             <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
             <Input 
-              placeholder="Search products..." 
+              placeholder="Search products or shops..." 
               className="pl-9 h-11 rounded-xl shadow-sm"
               value={searchTerm}
               onChange={(e) => setSearchTerm(e.target.value)}
@@ -243,7 +259,7 @@ export default function ProductsManagementPage() {
                 <TableHead className="pl-8 font-bold uppercase text-[10px] tracking-widest py-5">Product</TableHead>
                 <TableHead className="font-bold uppercase text-[10px] tracking-widest py-5">Category</TableHead>
                 <TableHead className="font-bold uppercase text-[10px] tracking-widest py-5">Price</TableHead>
-                <TableHead className="font-bold uppercase text-[10px] tracking-widest py-5">Seller ID</TableHead>
+                <TableHead className="font-bold uppercase text-[10px] tracking-widest py-5">Shop</TableHead>
                 <TableHead className="font-bold uppercase text-[10px] tracking-widest py-5">Created</TableHead>
                 <TableHead className="text-right pr-8 font-bold uppercase text-[10px] tracking-widest py-5">Status</TableHead>
               </TableRow>
@@ -272,8 +288,13 @@ export default function ProductsManagementPage() {
                     <TableCell className="font-black text-slate-900">
                       ₹{(product.price || 0).toLocaleString(undefined, { minimumFractionDigits: 2 })}
                     </TableCell>
-                    <TableCell className="text-[10px] font-mono text-muted-foreground uppercase">
-                      {product.sellerId.slice(0, 12)}...
+                    <TableCell>
+                      <div className="flex items-center gap-2">
+                        <Store className="h-3 w-3 text-muted-foreground" />
+                        <span className="text-xs font-semibold text-slate-700">
+                          {shopNames[product.sellerId] || `ID: ${product.sellerId.slice(0, 8)}...`}
+                        </span>
+                      </div>
                     </TableCell>
                     <TableCell className="text-xs font-medium text-slate-500">
                       {formatProductDate(product.createdAt)}
