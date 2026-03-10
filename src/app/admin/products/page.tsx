@@ -270,7 +270,7 @@ export default function ProductsManagementPage() {
                       </Badge>
                     </TableCell>
                     <TableCell className="font-black text-slate-900">
-                      ₹{product.price?.toLocaleString(undefined, { minimumFractionDigits: 2 })}
+                      ₹{(product.price || 0).toLocaleString(undefined, { minimumFractionDigits: 2 })}
                     </TableCell>
                     <TableCell className="text-[10px] font-mono text-muted-foreground uppercase">
                       {product.sellerId.slice(0, 12)}...
