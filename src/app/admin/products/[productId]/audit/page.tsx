@@ -68,7 +68,6 @@ export default function ProductAuditPage({ params }: { params: Promise<{ product
         }
 
         // Fetch Pings. We check for productId (singular) and also array-contains if it's multiple
-        // To be safe and avoid index issues, we'll fetch based on the most common patterns
         const pingsRef = collection(db, "pings");
         
         // Listener for pings associated with this productId
@@ -124,9 +123,14 @@ export default function ProductAuditPage({ params }: { params: Promise<{ product
     return <Badge variant="outline" className="uppercase font-bold text-[10px]">{status}</Badge>;
   };
 
+  // Only sum successful pings for the Total Yield
   const totalYield = pings.reduce((acc, p) => {
-    const amount = p.amount || p.items?.find(i => i.productId === productId)?.price || product?.sellingPrice || product?.price || 0;
-    return acc + amount;
+    const s = (p.status || "").toLowerCase().trim();
+    if (['successful', 'completed', 'success'].includes(s)) {
+      const amount = p.amount || p.items?.find(i => i.productId === productId)?.price || product?.sellingPrice || product?.price || 0;
+      return acc + amount;
+    }
+    return acc;
   }, 0);
 
   if (loading) {
@@ -156,7 +160,7 @@ export default function ProductAuditPage({ params }: { params: Promise<{ product
         <Card className="bg-white border-border/50 shadow-sm">
           <CardContent className="p-6">
             <div className="flex items-center justify-between mb-2">
-              <p className="text-[10px] font-bold text-muted-foreground uppercase tracking-widest">Total Yield</p>
+              <p className="text-[10px] font-bold text-muted-foreground uppercase tracking-widest">Total Yield (Success Only)</p>
               <IndianRupee className="h-4 w-4 text-primary opacity-50" />
             </div>
             <p className="text-3xl font-black text-slate-900">₹{totalYield.toLocaleString()}</p>
