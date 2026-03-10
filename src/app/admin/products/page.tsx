@@ -29,7 +29,10 @@ import {
   Calendar,
   FileText,
   CheckCircle2,
-  Clock
+  Clock,
+  User,
+  Mail,
+  MapPin
 } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
@@ -61,10 +64,20 @@ interface Product {
   creationDate?: any;
 }
 
+interface ShopProfile {
+  id: string;
+  name: string;
+  ownerName: string;
+  contactEmail: string;
+  city?: string;
+  state?: string;
+  street?: string;
+}
+
 export default function ProductsManagementPage() {
   const [products, setProducts] = useState<Product[]>([]);
   const [filteredProducts, setFilteredProducts] = useState<Product[]>([]);
-  const [shopNames, setShopNames] = useState<Record<string, string>>({});
+  const [shopsData, setShopsData] = useState<Record<string, ShopProfile>>({});
   const [loading, setLoading] = useState(true);
   const [updating, setUpdating] = useState(false);
   const [searchTerm, setSearchTerm] = useState("");
@@ -75,11 +88,20 @@ export default function ProductsManagementPage() {
       setLoading(true);
       
       const shopsSnap = await getDocs(collection(db, "shops"));
-      const shopsMap: Record<string, string> = {};
+      const shopsMap: Record<string, ShopProfile> = {};
       shopsSnap.forEach(doc => {
-        shopsMap[doc.id] = doc.data().name || "Unknown Shop";
+        const data = doc.data();
+        shopsMap[doc.id] = {
+          id: doc.id,
+          name: data.name || "Unknown Shop",
+          ownerName: data.ownerName || "Unknown Owner",
+          contactEmail: data.contactEmail || "N/A",
+          city: data.city,
+          state: data.state,
+          street: data.street,
+        };
       });
-      setShopNames(shopsMap);
+      setShopsData(shopsMap);
 
       const q = query(collectionGroup(db, "products"), orderBy("createdAt", "desc"));
       const snapshot = await getDocs(q);
@@ -103,7 +125,8 @@ export default function ProductsManagementPage() {
 
   useEffect(() => {
     const results = products.filter(product => {
-      const shopName = shopNames[product.sellerId] || "";
+      const shop = shopsData[product.sellerId];
+      const shopName = shop?.name || "";
       return (
         product.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
         product.category.toLowerCase().includes(searchTerm.toLowerCase()) ||
@@ -112,7 +135,7 @@ export default function ProductsManagementPage() {
       );
     });
     setFilteredProducts(results);
-  }, [searchTerm, products, shopNames]);
+  }, [searchTerm, products, shopsData]);
 
   const handleBulkUpdateStatus = async () => {
     setUpdating(true);
@@ -299,152 +322,168 @@ export default function ProductsManagementPage() {
                   </TableCell>
                 </TableRow>
               ) : (
-                filteredProducts.map((product) => (
-                  <TableRow key={product.id} className="hover:bg-muted/10 transition-colors group">
-                    <TableCell className="pl-8">
-                      <Dialog>
-                        <DialogTrigger asChild>
-                          <button className="flex flex-col items-start text-left hover:text-primary transition-colors group/name outline-none">
-                            <span className="font-black text-slate-900 group-hover/name:underline decoration-primary/30 underline-offset-4">{product.name}</span>
-                            <span className="text-[10px] text-muted-foreground font-mono uppercase tracking-tighter">UID: {product.id.slice(0, 12)}</span>
-                          </button>
-                        </DialogTrigger>
-                        <DialogContent className="sm:max-w-[700px] max-h-[90vh] p-0 overflow-hidden border-none shadow-2xl rounded-3xl">
-                          <ScrollArea className="h-full max-h-[90vh]">
-                            <div className="p-10 space-y-10 pb-16">
-                              <DialogHeader>
-                                <div className="flex items-center justify-between mb-6">
-                                  <div className="flex items-center gap-3">
-                                    <Badge variant="outline" className="text-[10px] uppercase font-bold tracking-widest bg-slate-50 px-3 py-1 border-slate-200">UID: {product.id}</Badge>
-                                    <Badge variant="outline" className="text-[10px] uppercase font-bold tracking-widest bg-slate-50 px-3 py-1 border-slate-200">Shop Ref: {product.sellerId.slice(0, 8)}...</Badge>
+                filteredProducts.map((product) => {
+                  const shop = shopsData[product.sellerId];
+                  return (
+                    <TableRow key={product.id} className="hover:bg-muted/10 transition-colors group">
+                      <TableCell className="pl-8">
+                        <Dialog>
+                          <DialogTrigger asChild>
+                            <button className="flex flex-col items-start text-left hover:text-primary transition-colors group/name outline-none">
+                              <span className="font-black text-slate-900 group-hover/name:underline decoration-primary/30 underline-offset-4">{product.name}</span>
+                              <span className="text-[10px] text-muted-foreground font-mono uppercase tracking-tighter">UID: {product.id.slice(0, 12)}</span>
+                            </button>
+                          </DialogTrigger>
+                          <DialogContent className="sm:max-w-[800px] max-h-[90vh] p-0 overflow-hidden border-none shadow-2xl rounded-3xl">
+                            <ScrollArea className="h-full max-h-[90vh]">
+                              <div className="p-10 space-y-10 pb-16">
+                                <DialogHeader>
+                                  <div className="flex items-center justify-between mb-6">
+                                    <div className="flex items-center gap-3">
+                                      <Badge variant="outline" className="text-[10px] uppercase font-bold tracking-widest bg-slate-50 px-3 py-1 border-slate-200">UID: {product.id}</Badge>
+                                      <Badge variant="outline" className="text-[10px] uppercase font-bold tracking-widest bg-slate-50 px-3 py-1 border-slate-200">Shop Ref: {product.sellerId.slice(0, 8)}...</Badge>
+                                    </div>
+                                    <Badge className={cn(
+                                      "px-4 py-1.5 shadow-none uppercase text-[10px] font-black tracking-widest",
+                                      (product.status || "").toLowerCase() === 'active' 
+                                        ? "bg-emerald-500/10 text-emerald-600 border-emerald-500/20" 
+                                        : "bg-amber-500/10 text-amber-600 border-amber-500/20"
+                                    )}>
+                                      {product.status || 'Draft'}
+                                    </Badge>
                                   </div>
-                                  <Badge className={cn(
-                                    "px-4 py-1.5 shadow-none uppercase text-[10px] font-black tracking-widest",
-                                    (product.status || "").toLowerCase() === 'active' 
-                                      ? "bg-emerald-500/10 text-emerald-600 border-emerald-500/20" 
-                                      : "bg-amber-500/10 text-amber-600 border-amber-500/20"
-                                  )}>
-                                    {product.status || 'Draft'}
-                                  </Badge>
-                                </div>
-                                <DialogTitle className="text-4xl font-headline font-black text-slate-900 leading-tight">{product.name}</DialogTitle>
-                                <DialogDescription className="text-lg text-slate-500 font-medium italic">Detailed catalog dossier and merchant mapping.</DialogDescription>
-                              </DialogHeader>
+                                  <DialogTitle className="text-4xl font-headline font-black text-slate-900 leading-tight">{product.name}</DialogTitle>
+                                  <DialogDescription className="text-lg text-slate-500 font-medium italic">Detailed catalog dossier and merchant mapping.</DialogDescription>
+                                </DialogHeader>
 
-                              <div className="relative aspect-video w-full rounded-3xl overflow-hidden border-4 border-white shadow-xl bg-slate-100 group">
-                                <Image 
-                                  src={`https://picsum.photos/seed/${product.id}/800/450`} 
-                                  alt={product.name} 
-                                  fill 
-                                  className="object-cover group-hover:scale-105 transition-transform duration-700"
-                                  data-ai-hint="product item"
-                                />
-                                <div className="absolute inset-0 bg-gradient-to-t from-black/40 to-transparent pointer-events-none" />
-                                <div className="absolute bottom-6 left-6 flex items-center gap-2">
-                                  <div className="bg-white/90 backdrop-blur p-2 rounded-xl shadow-lg border border-white/20">
-                                    <p className="text-[10px] font-bold text-muted-foreground uppercase tracking-widest leading-none mb-1">Price Point</p>
-                                    <p className="text-2xl font-black text-primary leading-none">₹{(product.price || 0).toLocaleString()}</p>
+                                <div className="relative aspect-video w-full rounded-3xl overflow-hidden border-4 border-white shadow-xl bg-slate-100 group">
+                                  <Image 
+                                    src={`https://picsum.photos/seed/${product.id}/800/450`} 
+                                    alt={product.name} 
+                                    fill 
+                                    className="object-cover group-hover:scale-105 transition-transform duration-700"
+                                    data-ai-hint="product item"
+                                  />
+                                  <div className="absolute inset-0 bg-gradient-to-t from-black/40 to-transparent pointer-events-none" />
+                                  <div className="absolute bottom-6 left-6 flex items-center gap-2">
+                                    <div className="bg-white/90 backdrop-blur p-2 rounded-xl shadow-lg border border-white/20">
+                                      <p className="text-[10px] font-bold text-muted-foreground uppercase tracking-widest leading-none mb-1">Price Point</p>
+                                      <p className="text-2xl font-black text-primary leading-none">₹{(product.price || 0).toLocaleString()}</p>
+                                    </div>
                                   </div>
                                 </div>
-                              </div>
 
-                              <div className="grid grid-cols-1 md:grid-cols-2 gap-10">
-                                <div className="space-y-8">
-                                  <section className="space-y-4">
-                                    <h4 className="text-[10px] font-bold text-slate-400 uppercase tracking-widest flex items-center gap-2 px-1"><Layers className="h-3.5 w-3.5 text-primary" /> Classification</h4>
-                                    <div className="bg-slate-50/50 p-6 rounded-2xl border border-slate-100 space-y-5 shadow-sm">
-                                      <div className="grid grid-cols-2 gap-4">
-                                        <div><p className="text-[9px] text-muted-foreground uppercase font-bold mb-1">Category</p><p className="font-bold text-sm text-slate-900">{product.category}</p></div>
-                                        <div><p className="text-[9px] text-muted-foreground uppercase font-bold mb-1">Subcategory</p><p className="font-bold text-sm text-slate-900">{product.subcategory || "N/A"}</p></div>
-                                      </div>
-                                    </div>
-                                  </section>
-
-                                  <section className="space-y-4">
-                                    <h4 className="text-[10px] font-bold text-slate-400 uppercase tracking-widest flex items-center gap-2 px-1"><Store className="h-3.5 w-3.5 text-blue-500" /> Merchant Context</h4>
-                                    <div className="bg-slate-50/50 p-6 rounded-2xl border border-slate-100 shadow-sm">
-                                      <div><p className="text-[9px] text-muted-foreground uppercase font-bold mb-1">Associated Shop</p><p className="font-bold text-sm text-slate-900">{shopNames[product.sellerId] || "Unknown Shop"}</p></div>
-                                      <div className="pt-3 mt-3 border-t border-slate-200/50">
-                                        <p className="text-[9px] text-muted-foreground uppercase font-bold mb-1">Seller Identity</p>
-                                        <p className="text-[10px] font-mono text-slate-500 uppercase">{product.sellerId}</p>
-                                      </div>
-                                    </div>
-                                  </section>
-                                </div>
-
-                                <div className="space-y-8">
-                                  <section className="space-y-4">
-                                    <h4 className="text-[10px] font-bold text-slate-400 uppercase tracking-widest flex items-center gap-2 px-1"><FileText className="h-3.5 w-3.5 text-slate-400" /> Item Description</h4>
-                                    <div className="bg-white p-6 rounded-2xl border border-slate-100 shadow-sm">
-                                      <p className="text-xs text-slate-600 leading-relaxed font-medium">
-                                        {product.description || "No description provided for this catalog entry. Administrators should ensure the merchant provides accurate item details for buyer confidence."}
-                                      </p>
-                                    </div>
-                                  </section>
-
-                                  <section className="space-y-4">
-                                    <h4 className="text-[10px] font-bold text-slate-400 uppercase tracking-widest flex items-center gap-2 px-1"><Calendar className="h-3.5 w-3.5 text-slate-400" /> Audit Timeline</h4>
-                                    <div className="bg-slate-50/50 p-5 rounded-2xl border border-slate-100 shadow-sm">
-                                      <div className="flex items-center gap-3">
-                                        <div className="bg-white p-2 rounded-lg shadow-sm">
-                                          <Clock className="h-4 w-4 text-slate-400" />
+                                <div className="grid grid-cols-1 md:grid-cols-2 gap-10">
+                                  <div className="space-y-8">
+                                    <section className="space-y-4">
+                                      <h4 className="text-[10px] font-bold text-slate-400 uppercase tracking-widest flex items-center gap-2 px-1"><Layers className="h-3.5 w-3.5 text-primary" /> Classification</h4>
+                                      <div className="bg-slate-50/50 p-6 rounded-2xl border border-slate-100 space-y-5 shadow-sm">
+                                        <div className="grid grid-cols-2 gap-4">
+                                          <div><p className="text-[9px] text-muted-foreground uppercase font-bold mb-1">Category</p><p className="font-bold text-sm text-slate-900">{product.category}</p></div>
+                                          <div><p className="text-[9px] text-muted-foreground uppercase font-bold mb-1">Subcategory</p><p className="font-bold text-sm text-slate-900">{product.subcategory || "N/A"}</p></div>
                                         </div>
+                                      </div>
+                                    </section>
+
+                                    <section className="space-y-4">
+                                      <h4 className="text-[10px] font-bold text-slate-400 uppercase tracking-widest flex items-center gap-2 px-1"><Store className="h-3.5 w-3.5 text-blue-500" /> Merchant Mapping</h4>
+                                      <div className="bg-slate-50/50 p-6 rounded-2xl border border-slate-100 space-y-5 shadow-sm">
                                         <div>
-                                          <p className="text-[9px] text-muted-foreground uppercase font-bold">Catalog Entry Created</p>
-                                          <p className="font-bold text-xs text-slate-700">{formatProductDate(product.createdAt || product.creationDate)}</p>
+                                          <p className="text-[9px] text-muted-foreground uppercase font-bold mb-1">Associated Shop</p>
+                                          <p className="font-black text-lg text-slate-900 leading-tight">{shop?.name || "Unknown Shop"}</p>
+                                        </div>
+                                        <div className="pt-4 border-t border-slate-200/50 space-y-4">
+                                          <div className="flex items-center gap-3">
+                                            <div className="p-2 bg-white rounded-lg border border-slate-100"><User className="h-3.5 w-3.5 text-slate-400" /></div>
+                                            <div><p className="text-[8px] text-muted-foreground uppercase font-bold">Principal Agent</p><p className="font-bold text-xs">{shop?.ownerName || "N/A"}</p></div>
+                                          </div>
+                                          <div className="flex items-center gap-3">
+                                            <div className="p-2 bg-white rounded-lg border border-slate-100"><Mail className="h-3.5 w-3.5 text-primary" /></div>
+                                            <div><p className="text-[8px] text-muted-foreground uppercase font-bold">Contact Channel</p><p className="font-bold text-xs text-primary underline truncate max-w-[200px]">{shop?.contactEmail || "N/A"}</p></div>
+                                          </div>
+                                          <div className="flex items-center gap-3">
+                                            <div className="p-2 bg-white rounded-lg border border-slate-100"><MapPin className="h-3.5 w-3.5 text-destructive" /></div>
+                                            <div><p className="text-[8px] text-muted-foreground uppercase font-bold">Base Location</p><p className="font-bold text-xs">{shop ? `${shop.city}, ${shop.state}` : "N/A"}</p></div>
+                                          </div>
                                         </div>
                                       </div>
-                                    </div>
-                                  </section>
+                                    </section>
+                                  </div>
+
+                                  <div className="space-y-8">
+                                    <section className="space-y-4">
+                                      <h4 className="text-[10px] font-bold text-slate-400 uppercase tracking-widest flex items-center gap-2 px-1"><FileText className="h-3.5 w-3.5 text-slate-400" /> Item Description</h4>
+                                      <div className="bg-white p-6 rounded-2xl border border-slate-100 shadow-sm min-h-[140px]">
+                                        <p className="text-xs text-slate-600 leading-relaxed font-medium">
+                                          {product.description || "No description provided for this catalog entry. Administrators should ensure the merchant provides accurate item details for buyer confidence."}
+                                        </p>
+                                      </div>
+                                    </section>
+
+                                    <section className="space-y-4">
+                                      <h4 className="text-[10px] font-bold text-slate-400 uppercase tracking-widest flex items-center gap-2 px-1"><Calendar className="h-3.5 w-3.5 text-slate-400" /> Audit Timeline</h4>
+                                      <div className="bg-slate-50/50 p-5 rounded-2xl border border-slate-100 shadow-sm">
+                                        <div className="flex items-center gap-3">
+                                          <div className="bg-white p-2 rounded-lg shadow-sm">
+                                            <Clock className="h-4 w-4 text-slate-400" />
+                                          </div>
+                                          <div>
+                                            <p className="text-[9px] text-muted-foreground uppercase font-bold">Catalog Entry Created</p>
+                                            <p className="font-bold text-xs text-slate-700">{formatProductDate(product.createdAt || product.creationDate)}</p>
+                                          </div>
+                                        </div>
+                                      </div>
+                                    </section>
+                                  </div>
+                                </div>
+
+                                <div className="flex gap-4 pt-10 border-t border-slate-100">
+                                  <Button 
+                                    className="flex-1 h-16 rounded-3xl bg-primary hover:bg-primary/90 text-white font-black uppercase tracking-widest text-xs shadow-xl shadow-primary/20 transition-all active:scale-95"
+                                    asChild
+                                  >
+                                    <Link href={`/admin/pings?search=${encodeURIComponent(product.name)}`}>
+                                      <Activity className="h-5 w-5 mr-3" /> View Transaction Pings
+                                    </Link>
+                                  </Button>
                                 </div>
                               </div>
-
-                              <div className="flex gap-4 pt-10 border-t border-slate-100">
-                                <Button 
-                                  className="flex-1 h-16 rounded-3xl bg-primary hover:bg-primary/90 text-white font-black uppercase tracking-widest text-xs shadow-xl shadow-primary/20 transition-all active:scale-95"
-                                  asChild
-                                >
-                                  <Link href={`/admin/pings?search=${encodeURIComponent(product.name)}`}>
-                                    <Activity className="h-5 w-5 mr-3" /> View Transaction Pings
-                                  </Link>
-                                </Button>
-                              </div>
-                            </div>
-                          </ScrollArea>
-                        </DialogContent>
-                      </Dialog>
-                    </TableCell>
-                    <TableCell>
-                      <Badge variant="outline" className="font-bold uppercase text-[10px] tracking-tighter bg-slate-50 text-slate-500 border-slate-200 shadow-none">
-                        {product.category}
-                      </Badge>
-                    </TableCell>
-                    <TableCell className="font-black text-slate-900">
-                      ₹{(product.price || 0).toLocaleString(undefined, { minimumFractionDigits: 2 })}
-                    </TableCell>
-                    <TableCell>
-                      <div className="flex items-center gap-2">
-                        <Store className="h-3 w-3 text-muted-foreground" />
-                        <span className="text-xs font-semibold text-slate-700">
-                          {shopNames[product.sellerId] || `ID: ${product.sellerId.slice(0, 8)}...`}
-                        </span>
-                      </div>
-                    </TableCell>
-                    <TableCell className="text-xs font-medium text-slate-500">
-                      {formatProductDate(product.createdAt || product.creationDate)}
-                    </TableCell>
-                    <TableCell className="text-right pr-8">
-                      <Badge className={cn(
-                        "font-black uppercase text-[10px] px-3 py-1 shadow-none tracking-widest",
-                        (product.status || "").toLowerCase() === 'active' 
-                          ? "bg-emerald-500/10 text-emerald-600 border-emerald-500/20" 
-                          : "bg-amber-500/10 text-amber-600 border-amber-500/20"
-                      )}>
-                        {product.status || 'Draft'}
-                      </Badge>
-                    </TableCell>
-                  </TableRow>
-                ))
+                            </ScrollArea>
+                          </DialogContent>
+                        </Dialog>
+                      </TableCell>
+                      <TableCell>
+                        <Badge variant="outline" className="font-bold uppercase text-[10px] tracking-tighter bg-slate-50 text-slate-500 border-slate-200 shadow-none">
+                          {product.category}
+                        </Badge>
+                      </TableCell>
+                      <TableCell className="font-black text-slate-900">
+                        ₹{(product.price || 0).toLocaleString(undefined, { minimumFractionDigits: 2 })}
+                      </TableCell>
+                      <TableCell>
+                        <div className="flex items-center gap-2">
+                          <Store className="h-3 w-3 text-muted-foreground" />
+                          <span className="text-xs font-semibold text-slate-700">
+                            {shop?.name || `ID: ${product.sellerId.slice(0, 8)}...`}
+                          </span>
+                        </div>
+                      </TableCell>
+                      <TableCell className="text-xs font-medium text-slate-500">
+                        {formatProductDate(product.createdAt || product.creationDate)}
+                      </TableCell>
+                      <TableCell className="text-right pr-8">
+                        <Badge className={cn(
+                          "font-black uppercase text-[10px] px-3 py-1 shadow-none tracking-widest",
+                          (product.status || "").toLowerCase() === 'active' 
+                            ? "bg-emerald-500/10 text-emerald-600 border-emerald-500/20" 
+                            : "bg-amber-500/10 text-amber-600 border-amber-500/20"
+                        )}>
+                          {product.status || 'Draft'}
+                        </Badge>
+                      </TableCell>
+                    </TableRow>
+                  );
+                })
               )}
             </TableBody>
           </Table>
