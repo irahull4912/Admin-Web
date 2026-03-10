@@ -36,6 +36,7 @@ import Link from "next/link";
 interface UserProfile {
   id: string;
   name: string;
+  displayName?: string;
   email: string;
   status: string;
   createdAt?: any;
@@ -175,7 +176,7 @@ function UserManagementContent() {
                     <p className="text-[10px] font-bold text-muted-foreground uppercase tracking-widest flex items-center gap-1.5">
                       <User className="h-3 w-3" /> Full Name
                     </p>
-                    <p className="text-lg font-bold text-foreground">{foundUser.name}</p>
+                    <p className="text-lg font-bold text-foreground">{foundUser.displayName || foundUser.name}</p>
                   </div>
 
                   <div className="space-y-1">
@@ -250,7 +251,7 @@ function UserManagementContent() {
             </CardContent>
           </Card>
 
-          {/* Purchase Audit History Card - NOW BELOW */}
+          {/* Purchase Audit History Card */}
           <Card className="border-border bg-card/40 backdrop-blur">
             <CardHeader className="border-b border-border/50">
               <div className="flex items-center gap-2">
