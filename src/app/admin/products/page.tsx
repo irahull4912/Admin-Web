@@ -1,4 +1,3 @@
-
 "use client";
 
 import { useEffect, useState } from "react";
@@ -45,7 +44,7 @@ export default function ProductsManagementPage() {
   const fetchProducts = async () => {
     try {
       setLoading(true);
-      const q = query(collectionGroup(db, "products"), orderBy("createdAt", "desc"));
+      const q = query(collectionGroup(db, "products"), orderBy("creationDate", "desc"));
       const snapshot = await getDocs(q);
       const productData = snapshot.docs.map(doc => ({
         id: doc.id,
