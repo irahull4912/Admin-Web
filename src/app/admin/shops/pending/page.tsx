@@ -32,7 +32,8 @@ import {
   MapPin, 
   Phone, 
   Info,
-  ArrowLeft
+  ArrowLeft,
+  User
 } from "lucide-react";
 import { errorEmitter } from "@/firebase/error-emitter";
 import { FirestorePermissionError } from "@/firebase/errors";
@@ -60,6 +61,7 @@ export default function PendingShopsPage() {
   const [selectedShop, setSelectedShop] = useState<PendingShop | null>(null);
 
   useEffect(() => {
+    // Fetch all documents from shops collection where status == 'pending'
     const q = query(collection(db, "shops"), where("status", "==", "pending"));
     const unsubscribe = onSnapshot(q, (snapshot) => {
       const shopData = snapshot.docs.map(doc => ({
@@ -108,7 +110,7 @@ export default function PendingShopsPage() {
         </Button>
         <div>
           <h1 className="text-3xl font-headline font-bold text-foreground tracking-tight">Pending Shops</h1>
-          <p className="text-muted-foreground mt-1 text-lg">Review and manage new merchant registration requests.</p>
+          <p className="text-muted-foreground mt-1 text-lg">Review merchant registrations for platform approval.</p>
         </div>
       </div>
 
@@ -117,13 +119,13 @@ export default function PendingShopsPage() {
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-2">
               <Store className="h-5 w-5 text-primary" />
-              <CardTitle>Approval Queue</CardTitle>
+              <CardTitle>Registration List</CardTitle>
             </div>
             <Badge variant="outline" className="font-mono">
-              {shops.length} Pending Requests
+              {shops.length} Pending
             </Badge>
           </div>
-          <CardDescription>Review shop details, location, and owner information before approval.</CardDescription>
+          <CardDescription>Click a shop name to review full details and decide on approval.</CardDescription>
         </CardHeader>
         <CardContent className="p-0">
           <Table>
@@ -131,7 +133,7 @@ export default function PendingShopsPage() {
               <TableRow>
                 <TableHead>Shop Name</TableHead>
                 <TableHead>Owner Name</TableHead>
-                <TableHead className="text-right">Action</TableHead>
+                <TableHead className="text-right">Actions</TableHead>
               </TableRow>
             </TableHeader>
             <TableBody>
@@ -148,7 +150,12 @@ export default function PendingShopsPage() {
                 shops.map((shop) => (
                   <TableRow key={shop.id} className="hover:bg-muted/20 transition-colors">
                     <TableCell className="font-semibold">{shop.name}</TableCell>
-                    <TableCell>{shop.ownerName}</TableCell>
+                    <TableCell>
+                      <div className="flex items-center gap-2">
+                        <User className="h-4 w-4 text-muted-foreground" />
+                        {shop.ownerName}
+                      </div>
+                    </TableCell>
                     <TableCell className="text-right">
                       <Dialog>
                         <DialogTrigger asChild>
@@ -159,17 +166,17 @@ export default function PendingShopsPage() {
                             className="text-primary hover:text-primary hover:bg-primary/10"
                           >
                             <Info className="h-4 w-4 mr-1.5" />
-                            Review
+                            View Details
                           </Button>
                         </DialogTrigger>
                         <DialogContent className="sm:max-w-[550px]">
                           <DialogHeader>
                             <DialogTitle className="text-2xl font-bold">{shop.name}</DialogTitle>
-                            <DialogDescription>Review merchant details and location for platform onboarding.</DialogDescription>
+                            <DialogDescription>Full merchant dossier for registration {shop.id.slice(0, 8)}</DialogDescription>
                           </DialogHeader>
                           
                           <div className="space-y-6 py-4">
-                            {/* Shop Image */}
+                            {/* Shop Image - Requirement: imageUrl */}
                             <div className="relative aspect-video w-full rounded-xl overflow-hidden border bg-muted/50">
                               {shop.imageUrl ? (
                                 <Image 
@@ -180,13 +187,13 @@ export default function PendingShopsPage() {
                                 />
                               ) : (
                                 <div className="flex items-center justify-center h-full text-muted-foreground italic">
-                                  No image provided
+                                  No imageUrl provided
                                 </div>
                               )}
                             </div>
 
                             <div className="grid grid-cols-2 gap-6">
-                              {/* Owner & Contact */}
+                              {/* Contact - Requirement: contactNumber */}
                               <div className="space-y-4">
                                 <div className="space-y-1">
                                   <p className="text-xs font-bold text-muted-foreground uppercase tracking-wider">Owner</p>
@@ -201,19 +208,20 @@ export default function PendingShopsPage() {
                                 </div>
                               </div>
 
-                              {/* Location */}
+                              {/* Location - Requirement: lat, lng, city, street */}
                               <div className="space-y-4">
                                 <div className="space-y-1">
                                   <p className="text-xs font-bold text-muted-foreground uppercase tracking-wider">Location</p>
                                   <div className="flex flex-col gap-1 text-sm">
                                     <div className="flex items-start gap-2">
                                       <MapPin className="h-4 w-4 text-primary mt-0.5 shrink-0" />
-                                      <span>
+                                      <span className="font-medium">
                                         {shop.location?.street}, {shop.location?.city}
                                       </span>
                                     </div>
-                                    <div className="pl-6 text-xs text-muted-foreground font-mono">
-                                      Lat: {shop.location?.latitude?.toFixed(4)}, Lng: {shop.location?.longitude?.toFixed(4)}
+                                    <div className="pl-6 text-xs text-muted-foreground font-mono space-y-0.5">
+                                      <div>Lat: {shop.location?.latitude ?? "N/A"}</div>
+                                      <div>Lng: {shop.location?.longitude ?? "N/A"}</div>
                                     </div>
                                   </div>
                                 </div>
@@ -222,6 +230,7 @@ export default function PendingShopsPage() {
                           </div>
 
                           <DialogFooter className="gap-2 sm:gap-0">
+                            {/* Requirement: Reject Button -> 'rejected' */}
                             <Button 
                               variant="outline" 
                               onClick={() => handleUpdateStatus(shop.id, 'rejected')}
@@ -230,6 +239,7 @@ export default function PendingShopsPage() {
                               <XCircle className="h-4 w-4 mr-2" />
                               Reject
                             </Button>
+                            {/* Requirement: Approve Button -> 'approved' */}
                             <Button 
                               onClick={() => handleUpdateStatus(shop.id, 'approved')}
                               className="flex-1 sm:flex-none bg-emerald-600 hover:bg-emerald-700 text-white shadow-lg shadow-emerald-500/20"

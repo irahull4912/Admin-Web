@@ -1,3 +1,4 @@
+
 "use client";
 
 import { useEffect, useState } from "react";
@@ -337,7 +338,7 @@ export default function AdminDashboardPage() {
                                 Reject
                               </Button>
                               <Button 
-                                onClick={() => handleUpdateShopStatus(shop.id, 'active')}
+                                onClick={() => handleUpdateShopStatus(shop.id, 'approved')}
                                 className="flex-1 sm:flex-none bg-emerald-600 hover:bg-emerald-700 text-white"
                               >
                                 <CheckCircle2 className="h-4 w-4 mr-2" />
