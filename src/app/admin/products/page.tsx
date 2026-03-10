@@ -77,12 +77,12 @@ interface Product {
   name: string;
   brand?: string;
   description: string;
-  price?: number; // Fallback
+  price?: number; 
   sellingPrice?: number;
   mrp?: number;
   category: string;
   subCategory?: string;
-  subcategory?: string; // Legacy support
+  subcategory?: string; 
   status: string;
   stockStatus?: string;
   quantity?: number;
@@ -152,9 +152,24 @@ export default function ProductsManagementPage() {
     fetchProductsData();
   }, []);
 
+  // Helper to find a shop by any potential ID field
+  const getShopForProduct = (product: Product) => {
+    const idsToTry = [
+      product.shopId, 
+      product.sellerId, 
+      `shop-${product.sellerId}`,
+      product.sellerId?.startsWith('shop-') ? product.sellerId.replace('shop-', '') : null
+    ].filter(Boolean) as string[];
+
+    for (const id of idsToTry) {
+      if (shopsData[id]) return shopsData[id];
+    }
+    return null;
+  };
+
   useEffect(() => {
     const results = products.filter(product => {
-      const shop = shopsData[product.sellerId];
+      const shop = getShopForProduct(product);
       const shopName = shop?.name || "";
       return (
         product.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
@@ -349,7 +364,7 @@ export default function ProductsManagementPage() {
                 </TableRow>
               ) : (
                 filteredProducts.map((product) => {
-                  const shop = shopsData[product.sellerId];
+                  const shop = getShopForProduct(product);
                   const currentPrice = product.sellingPrice || product.price || 0;
                   const mrp = product.mrp || 0;
                   const discount = mrp > currentPrice ? Math.round(((mrp - currentPrice) / mrp) * 100) : 0;
@@ -584,7 +599,7 @@ export default function ProductsManagementPage() {
                         <div className="flex items-center gap-2">
                           <Store className="h-3 w-3 text-muted-foreground" />
                           <span className="text-xs font-semibold text-slate-700">
-                            {shop?.name || `ID: ${product.sellerId.slice(0, 8)}...`}
+                            {shop?.name || `ID: ${product.sellerId?.slice(0, 8)}...`}
                           </span>
                         </div>
                       </TableCell>
