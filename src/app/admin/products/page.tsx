@@ -2,7 +2,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { collectionGroup, getDocs, query, orderBy, Timestamp } from "firebase/firestore";
+import { collectionGroup, getDocs, query, orderBy, Timestamp, updateDoc } from "firebase/firestore";
 import { db } from "@/lib/firebase";
 import { 
   Table, 
@@ -14,12 +14,13 @@ import {
 } from "@/components/ui/table";
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
-import { Package, Search, Filter, Loader2, ArrowLeft, Tag, DollarSign, Activity, Store } from "lucide-react";
+import { Package, Search, Filter, Loader2, ArrowLeft, Tag, DollarSign, Activity, Store, RefreshCw } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import Link from "next/link";
 import { format } from "date-fns";
 import { cn } from "@/lib/utils";
+import { useToast } from "@/hooks/use-toast";
 
 interface Product {
   id: string;
@@ -37,28 +38,29 @@ export default function ProductsManagementPage() {
   const [products, setProducts] = useState<Product[]>([]);
   const [filteredProducts, setFilteredProducts] = useState<Product[]>([]);
   const [loading, setLoading] = useState(true);
+  const [updating, setUpdating] = useState(false);
   const [searchTerm, setSearchTerm] = useState("");
+  const { toast } = useToast();
+
+  const fetchProducts = async () => {
+    try {
+      setLoading(true);
+      const q = query(collectionGroup(db, "products"), orderBy("createdAt", "desc"));
+      const snapshot = await getDocs(q);
+      const productData = snapshot.docs.map(doc => ({
+        id: doc.id,
+        ...doc.data()
+      })) as Product[];
+      setProducts(productData);
+      setFilteredProducts(productData);
+    } catch (error) {
+      console.error("Error fetching products:", error);
+    } finally {
+      setLoading(false);
+    }
+  };
 
   useEffect(() => {
-    async function fetchProducts() {
-      try {
-        setLoading(true);
-        // Using collectionGroup to aggregate products from all /shops/{shopId}/products collections
-        const q = query(collectionGroup(db, "products"), orderBy("creationDate", "desc"));
-        const snapshot = await getDocs(q);
-        const productData = snapshot.docs.map(doc => ({
-          id: doc.id,
-          ...doc.data()
-        })) as Product[];
-        setProducts(productData);
-        setFilteredProducts(productData);
-      } catch (error) {
-        console.error("Error fetching products:", error);
-      } finally {
-        setLoading(false);
-      }
-    }
-
     fetchProducts();
   }, []);
 
@@ -71,6 +73,36 @@ export default function ProductsManagementPage() {
     setFilteredProducts(results);
   }, [searchTerm, products]);
 
+  const handleBulkUpdateStatus = async () => {
+    setUpdating(true);
+    try {
+      const q = query(collectionGroup(db, "products"));
+      const snapshot = await getDocs(q);
+      
+      const updatePromises = snapshot.docs.map((docSnap) => 
+        updateDoc(docSnap.ref, { status: 'active' })
+      );
+      
+      await Promise.all(updatePromises);
+      
+      toast({
+        title: "Database Synchronized",
+        description: "All products updated to active status!",
+      });
+      
+      await fetchProducts();
+    } catch (error) {
+      console.error("Error updating products:", error);
+      toast({
+        variant: "destructive",
+        title: "Synchronization Failed",
+        description: "An error occurred during bulk status update.",
+      });
+    } finally {
+      setUpdating(false);
+    }
+  };
+
   const formatProductDate = (timestamp: any) => {
     if (!timestamp) return "N/A";
     const date = timestamp instanceof Timestamp ? timestamp.toDate() : new Date(timestamp);
@@ -81,14 +113,14 @@ export default function ProductsManagementPage() {
     }
   };
 
-  const totalProducts = products.length;
-  const activeProducts = products.filter(p => p.status?.toLowerCase() === 'active').length;
-  const averagePrice = products.length > 0 
+  const totalProductsCount = products.length;
+  const activeProductsCount = products.filter(p => p.status?.toLowerCase() === 'active').length;
+  const averagePriceValue = products.length > 0 
     ? products.reduce((acc, p) => acc + (p.price || 0), 0) / products.length 
     : 0;
-  const uniqueSellers = new Set(products.map(p => p.sellerId)).size;
+  const uniqueSellersCount = new Set(products.map(p => p.sellerId)).size;
 
-  if (loading) {
+  if (loading && !updating) {
     return (
       <div className="flex h-[60vh] items-center justify-center flex-col gap-4">
         <Loader2 className="h-10 w-10 animate-spin text-primary" />
@@ -110,6 +142,15 @@ export default function ProductsManagementPage() {
           <p className="text-muted-foreground mt-1 text-lg">Detailed overview of all products listed on the platform.</p>
         </div>
         <div className="flex items-center gap-3">
+          <Button 
+            variant="secondary" 
+            className="h-11 px-6 rounded-xl shadow-sm font-bold gap-2 bg-primary/5 text-primary hover:bg-primary/10 transition-all"
+            onClick={handleBulkUpdateStatus}
+            disabled={updating}
+          >
+            {updating ? <RefreshCw className="h-4 w-4 animate-spin" /> : <RefreshCw className="h-4 w-4" />}
+            Sync Active Status
+          </Button>
           <div className="relative w-64">
             <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
             <Input 
@@ -131,7 +172,7 @@ export default function ProductsManagementPage() {
             <div className="flex items-start justify-between">
               <div>
                 <p className="text-[10px] font-bold text-muted-foreground uppercase tracking-widest mb-1">Total Products</p>
-                <p className="text-3xl font-black text-slate-900 tracking-tighter">{totalProducts.toLocaleString()}</p>
+                <p className="text-3xl font-black text-slate-900 tracking-tighter">{totalProductsCount.toLocaleString()}</p>
               </div>
               <div className="h-10 w-10 rounded-xl bg-slate-100 flex items-center justify-center text-slate-400 group-hover:bg-primary group-hover:text-white transition-colors">
                 <Package className="h-5 w-5" />
@@ -145,7 +186,7 @@ export default function ProductsManagementPage() {
             <div className="flex items-start justify-between">
               <div>
                 <p className="text-[10px] font-bold text-muted-foreground uppercase tracking-widest mb-1">Active Items</p>
-                <p className="text-3xl font-black text-emerald-600 tracking-tighter">{activeProducts.toLocaleString()}</p>
+                <p className="text-3xl font-black text-emerald-600 tracking-tighter">{activeProductsCount.toLocaleString()}</p>
               </div>
               <div className="h-10 w-10 rounded-xl bg-emerald-50 flex items-center justify-center text-emerald-500 group-hover:bg-emerald-600 group-hover:text-white transition-colors">
                 <Activity className="h-5 w-5" />
@@ -159,7 +200,7 @@ export default function ProductsManagementPage() {
             <div className="flex items-start justify-between">
               <div>
                 <p className="text-[10px] font-bold text-muted-foreground uppercase tracking-widest mb-1">Avg Price</p>
-                <p className="text-3xl font-black text-slate-900 tracking-tighter">${averagePrice.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</p>
+                <p className="text-3xl font-black text-slate-900 tracking-tighter">${averagePriceValue.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</p>
               </div>
               <div className="h-10 w-10 rounded-xl bg-blue-50 flex items-center justify-center text-blue-500 group-hover:bg-blue-600 group-hover:text-white transition-colors">
                 <DollarSign className="h-5 w-5" />
@@ -173,7 +214,7 @@ export default function ProductsManagementPage() {
             <div className="flex items-start justify-between">
               <div>
                 <p className="text-[10px] font-bold text-muted-foreground uppercase tracking-widest mb-1">Unique Sellers</p>
-                <p className="text-3xl font-black text-slate-900 tracking-tighter">{uniqueSellers.toLocaleString()}</p>
+                <p className="text-3xl font-black text-slate-900 tracking-tighter">{uniqueSellersCount.toLocaleString()}</p>
               </div>
               <div className="h-10 w-10 rounded-xl bg-slate-100 flex items-center justify-center text-slate-400 group-hover:bg-primary group-hover:text-white transition-colors">
                 <Store className="h-5 w-5" />
@@ -211,7 +252,7 @@ export default function ProductsManagementPage() {
               {filteredProducts.length === 0 ? (
                 <TableRow>
                   <TableCell colSpan={6} className="h-48 text-center text-muted-foreground font-medium italic">
-                    No products found matching your search criteria.
+                    {updating ? "Synchronizing database records..." : "No products found matching your search criteria."}
                   </TableCell>
                 </TableRow>
               ) : (
