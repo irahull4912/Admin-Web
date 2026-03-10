@@ -62,6 +62,7 @@ export default function ProductAuditPage({ params }: { params: Promise<{ product
         }
 
         // Real-time listener for pings associated with this productId
+        // We do not use orderBy here to avoid requiring a composite index during development
         const q = query(
           collection(db, "pings"), 
           where("productId", "==", productId)
@@ -73,7 +74,7 @@ export default function ProductAuditPage({ params }: { params: Promise<{ product
             ...doc.data()
           })) as PingRecord[];
           
-          // Client-side sort to avoid requiring a composite index during dev
+          // Perform client-side sort for immediate usability
           const sortedPings = pingData.sort((a, b) => {
             const timeA = a.createdAt instanceof Timestamp ? a.createdAt.toMillis() : new Date(a.createdAt).getTime();
             const timeB = b.createdAt instanceof Timestamp ? b.createdAt.toMillis() : new Date(b.createdAt).getTime();
@@ -82,7 +83,7 @@ export default function ProductAuditPage({ params }: { params: Promise<{ product
 
           setPings(sortedPings);
 
-          // Resolve buyer emails for the pings
+          // Resolve buyer emails for the unique set of buyers in these pings
           const uniqueBuyerIds = Array.from(new Set(sortedPings.map(p => p.buyerId)));
           if (uniqueBuyerIds.length > 0) {
             const usersSnap = await getDocs(collection(db, "users"));
@@ -94,6 +95,9 @@ export default function ProductAuditPage({ params }: { params: Promise<{ product
             });
             setBuyerEmails(prev => ({ ...prev, ...emails }));
           }
+          setLoading(false);
+        }, (error) => {
+          console.error("Error in pings listener:", error);
           setLoading(false);
         });
 
