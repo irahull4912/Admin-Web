@@ -1,7 +1,8 @@
+
 "use client";
 
 import { useState, useEffect, useCallback, Suspense } from "react";
-import { collection, query, where, getDocs, limit } from "firebase/firestore";
+import { collection, query, where, getDocs, limit, Timestamp } from "firebase/firestore";
 import { db } from "@/lib/firebase";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
@@ -15,15 +16,32 @@ import {
   TableRow 
 } from "@/components/ui/table";
 import { Badge } from "@/components/ui/badge";
-import { Search, User, ShoppingBag, Loader2 } from "lucide-react";
+import { 
+  Search, 
+  User, 
+  ShoppingBag, 
+  Loader2, 
+  Calendar, 
+  MapPin, 
+  Phone, 
+  Shield, 
+  Fingerprint,
+  Clock
+} from "lucide-react";
 import { useSearchParams } from "next/navigation";
+import { format } from "date-fns";
 
 interface UserProfile {
   id: string;
   name: string;
   email: string;
   status: string;
-  registrationDate: string;
+  createdAt?: any;
+  registrationDate?: any; // Fallback for legacy
+  updatedAt?: any;
+  location?: string;
+  phoneNumber?: string;
+  role?: string;
 }
 
 interface Purchase {
@@ -62,7 +80,8 @@ function UserManagementContent() {
       }
 
       if (!snapshot.empty) {
-        const userData = { id: snapshot.docs[0].id, ...snapshot.docs[0].data() } as UserProfile;
+        const doc = snapshot.docs[0];
+        const userData = { id: doc.id, ...doc.data() } as UserProfile;
         setFoundUser(userData);
 
         // Fetch purchases for this user
@@ -90,11 +109,21 @@ function UserManagementContent() {
     }
   }, [searchParams, handleSearch]);
 
+  const formatDate = (date: any) => {
+    if (!date) return "N/A";
+    const d = date instanceof Timestamp ? date.toDate() : new Date(date);
+    try {
+      return format(d, "MMM d, yyyy HH:mm");
+    } catch {
+      return "Invalid Date";
+    }
+  };
+
   return (
     <div className="space-y-8 animate-in fade-in slide-in-from-bottom-4 duration-500">
       <div>
-        <h1 className="text-3xl font-headline font-bold text-foreground">User Management</h1>
-        <p className="text-muted-foreground mt-1 text-lg">Search for users to view profiles and purchase history.</p>
+        <h1 className="text-3xl font-headline font-bold text-foreground tracking-tight">User Administration</h1>
+        <p className="text-muted-foreground mt-1 text-lg">Detailed profile inspection and transaction auditing.</p>
       </div>
 
       <div className="flex gap-4 max-w-xl">
@@ -114,34 +143,96 @@ function UserManagementContent() {
       </div>
 
       {foundUser ? (
-        <div className="grid gap-6 md:grid-cols-3">
-          <Card className="md:col-span-1 border-border bg-card/40 backdrop-blur h-fit">
-            <CardHeader>
-              <div className="flex items-center gap-2">
-                <User className="h-5 w-5 text-primary" />
-                <CardTitle>User Profile</CardTitle>
+        <div className="grid gap-6 md:grid-cols-3 items-start">
+          <Card className="md:col-span-1 border-border bg-card/40 backdrop-blur sticky top-24">
+            <CardHeader className="pb-4">
+              <div className="flex items-center gap-3">
+                <div className="h-10 w-10 rounded-full bg-primary/10 flex items-center justify-center">
+                  <User className="h-5 w-5 text-primary" />
+                </div>
+                <div>
+                  <CardTitle className="text-xl">Identity Dossier</CardTitle>
+                  <CardDescription>Verified system records</CardDescription>
+                </div>
               </div>
             </CardHeader>
-            <CardContent className="space-y-4">
-              <div className="space-y-1">
-                <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">Display Name</p>
-                <p className="text-lg font-bold">{foundUser.name}</p>
-              </div>
-              <div className="space-y-1">
-                <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">Email Address</p>
-                <p className="text-foreground">{foundUser.email}</p>
-              </div>
-              <div className="space-y-1">
-                <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">Status</p>
-                <Badge variant={foundUser.status === "Active" ? "default" : "secondary"}>
-                  {foundUser.status}
-                </Badge>
-              </div>
-              <div className="space-y-1">
-                <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">Registered On</p>
-                <p className="text-foreground">
-                  {foundUser.registrationDate ? new Date(foundUser.registrationDate).toLocaleDateString() : 'N/A'}
-                </p>
+            <CardContent className="space-y-6">
+              <div className="space-y-4">
+                <div className="space-y-1">
+                  <p className="text-[10px] font-bold text-muted-foreground uppercase tracking-widest flex items-center gap-1.5">
+                    <Shield className="h-3 w-3" /> System Role
+                  </p>
+                  <Badge variant="outline" className="font-semibold text-primary border-primary/20 bg-primary/5">
+                    {foundUser.role || "User"}
+                  </Badge>
+                </div>
+
+                <div className="space-y-1">
+                  <p className="text-[10px] font-bold text-muted-foreground uppercase tracking-widest flex items-center gap-1.5">
+                    <User className="h-3 w-3" /> Full Name
+                  </p>
+                  <p className="text-lg font-bold text-foreground">{foundUser.name}</p>
+                </div>
+
+                <div className="space-y-1">
+                  <p className="text-[10px] font-bold text-muted-foreground uppercase tracking-widest flex items-center gap-1.5">
+                    <Calendar className="h-3 w-3" /> Email Address
+                  </p>
+                  <p className="text-sm font-medium text-foreground truncate" title={foundUser.email}>
+                    {foundUser.email}
+                  </p>
+                </div>
+
+                <div className="space-y-1">
+                  <p className="text-[10px] font-bold text-muted-foreground uppercase tracking-widest flex items-center gap-1.5">
+                    <Fingerprint className="h-3 w-3" /> UID Reference
+                  </p>
+                  <code className="text-[11px] font-mono bg-muted/50 px-1.5 py-0.5 rounded text-muted-foreground">
+                    {foundUser.id}
+                  </code>
+                </div>
+
+                <div className="grid grid-cols-2 gap-4">
+                  <div className="space-y-1">
+                    <p className="text-[10px] font-bold text-muted-foreground uppercase tracking-widest flex items-center gap-1.5">
+                      <Phone className="h-3 w-3" /> Phone
+                    </p>
+                    <p className="text-sm font-medium">{foundUser.phoneNumber || "None set"}</p>
+                  </div>
+                  <div className="space-y-1">
+                    <p className="text-[10px] font-bold text-muted-foreground uppercase tracking-widest flex items-center gap-1.5">
+                      <MapPin className="h-3 w-3" /> Location
+                    </p>
+                    <p className="text-sm font-medium truncate" title={foundUser.location}>
+                      {foundUser.location || "None set"}
+                    </p>
+                  </div>
+                </div>
+
+                <div className="pt-4 border-t space-y-3">
+                  <div className="flex justify-between items-center text-xs">
+                    <span className="text-muted-foreground flex items-center gap-1.5">
+                      <Clock className="h-3 w-3" /> Registered
+                    </span>
+                    <span className="font-medium text-foreground">
+                      {formatDate(foundUser.createdAt || foundUser.registrationDate)}
+                    </span>
+                  </div>
+                  <div className="flex justify-between items-center text-xs">
+                    <span className="text-muted-foreground flex items-center gap-1.5">
+                      <Clock className="h-3 w-3" /> Last Updated
+                    </span>
+                    <span className="font-medium text-foreground">
+                      {formatDate(foundUser.updatedAt)}
+                    </span>
+                  </div>
+                </div>
+
+                <div className="pt-2">
+                  <Badge className={foundUser.status === "Active" ? "bg-emerald-500/10 text-emerald-500 hover:bg-emerald-500/20" : "bg-destructive/10 text-destructive hover:bg-destructive/20"}>
+                    {foundUser.status}
+                  </Badge>
+                </div>
               </div>
             </CardContent>
           </Card>
@@ -150,34 +241,39 @@ function UserManagementContent() {
             <CardHeader>
               <div className="flex items-center gap-2">
                 <ShoppingBag className="h-5 w-5 text-primary" />
-                <CardTitle>Purchase History</CardTitle>
+                <CardTitle>Purchase Audit History</CardTitle>
               </div>
-              <CardDescription>A list of all transactions made by this user.</CardDescription>
+              <CardDescription>Comprehensive list of resolved transactions associated with this account.</CardDescription>
             </CardHeader>
             <CardContent>
               <Table>
-                <TableHeader>
+                <TableHeader className="bg-muted/30">
                   <TableRow>
-                    <TableHead>Date</TableHead>
-                    <TableHead>Total Price</TableHead>
-                    <TableHead>Status</TableHead>
+                    <TableHead>Transaction Date</TableHead>
+                    <TableHead>Order Amount</TableHead>
+                    <TableHead className="text-right">Status</TableHead>
                   </TableRow>
                 </TableHeader>
                 <TableBody>
                   {purchases.length === 0 ? (
                     <TableRow>
-                      <TableCell colSpan={3} className="text-center py-8 text-muted-foreground">
-                        No purchases found for this user.
+                      <TableCell colSpan={3} className="h-32 text-center text-muted-foreground">
+                        <div className="flex flex-col items-center justify-center gap-2">
+                          <ShoppingBag className="h-8 w-8 opacity-20" />
+                          <p>No purchase records found for this identity.</p>
+                        </div>
                       </TableCell>
                     </TableRow>
                   ) : (
                     purchases.map((purchase) => (
-                      <TableRow key={purchase.id}>
-                        <TableCell>
-                          {purchase.purchaseDate ? new Date(purchase.purchaseDate).toLocaleDateString() : 'N/A'}
+                      <TableRow key={purchase.id} className="hover:bg-muted/20 transition-colors">
+                        <TableCell className="font-medium">
+                          {formatDate(purchase.purchaseDate)}
                         </TableCell>
-                        <TableCell>${purchase.totalPrice?.toFixed(2) || '0.00'}</TableCell>
-                        <TableCell>
+                        <TableCell className="font-bold text-primary">
+                          ${purchase.totalPrice?.toFixed(2) || '0.00'}
+                        </TableCell>
+                        <TableCell className="text-right">
                           <Badge variant={purchase.status === "Completed" ? "default" : "secondary"}>
                             {purchase.status}
                           </Badge>
@@ -192,9 +288,10 @@ function UserManagementContent() {
         </div>
       ) : (
         !loading && searchTerm && (
-          <div className="text-center py-20 bg-muted/20 rounded-2xl border border-dashed">
-            <User className="h-12 w-12 text-muted-foreground mx-auto mb-4 opacity-20" />
-            <p className="text-muted-foreground">Search for a user to see their details.</p>
+          <div className="text-center py-24 bg-muted/20 rounded-2xl border border-dashed border-border/60">
+            <User className="h-16 w-16 text-muted-foreground/30 mx-auto mb-4" />
+            <h3 className="text-lg font-semibold text-muted-foreground">No Account Found</h3>
+            <p className="text-sm text-muted-foreground/80 mt-1">Verify the email address or UID and try again.</p>
           </div>
         )
       )}
@@ -204,7 +301,12 @@ function UserManagementContent() {
 
 export default function UsersPage() {
   return (
-    <Suspense fallback={<div className="flex h-96 items-center justify-center"><Loader2 className="h-8 w-8 animate-spin text-primary" /></div>}>
+    <Suspense fallback={
+      <div className="flex flex-col items-center justify-center h-96 gap-4">
+        <Loader2 className="h-10 w-10 animate-spin text-primary" />
+        <p className="text-sm text-muted-foreground animate-pulse">Retrieving user profile data...</p>
+      </div>
+    }>
       <UserManagementContent />
     </Suspense>
   );

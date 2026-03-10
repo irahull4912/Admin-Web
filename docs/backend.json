@@ -56,26 +56,38 @@
           "type": "string",
           "description": "The display name of the user."
         },
-        "registrationDate": {
+        "createdAt": {
           "type": "string",
           "description": "Timestamp when the user registered on the platform.",
           "format": "date-time"
         },
-        "lastActivityDate": {
+        "updatedAt": {
           "type": "string",
-          "description": "Timestamp of the user's last recorded activity on the platform.",
+          "description": "Timestamp of the user's last profile update.",
           "format": "date-time"
         },
         "status": {
           "type": "string",
           "description": "The current status of the user account (e.g., 'Active', 'Suspended', 'Inactive')."
+        },
+        "location": {
+          "type": "string",
+          "description": "The user's primary geographical location or address."
+        },
+        "phoneNumber": {
+          "type": "string",
+          "description": "The user's contact phone number."
+        },
+        "role": {
+          "type": "string",
+          "description": "The user's assigned role on the platform."
         }
       },
       "required": [
         "id",
         "email",
         "name",
-        "registrationDate",
+        "createdAt",
         "status"
       ]
     },
