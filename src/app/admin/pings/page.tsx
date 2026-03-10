@@ -211,7 +211,7 @@ export default function PingsManagementPage() {
           <CardHeader className="pb-2">
             <CardDescription className="text-xs uppercase font-bold tracking-wider">Total Value</CardDescription>
             <CardTitle className="text-3xl">
-              ${pings.reduce((acc, p) => acc + (p.amount || 0), 0).toLocaleString()}
+              ₹{pings.reduce((acc, p) => acc + (p.amount || 0), 0).toLocaleString()}
             </CardTitle>
           </CardHeader>
         </Card>
@@ -297,7 +297,7 @@ export default function PingsManagementPage() {
                         </div>
                       </TableCell>
                       <TableCell className="font-bold text-primary">
-                        ${(ping.amount || snapshotItem?.price || productCatalogInfo.price).toLocaleString()}
+                        ₹{(ping.amount || snapshotItem?.price || productCatalogInfo.price).toLocaleString()}
                       </TableCell>
                       <TableCell className="text-right">
                         {getStatusBadge(ping.status)}

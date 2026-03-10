@@ -30,7 +30,7 @@ interface Product {
   category: string;
   subcategory: string;
   status: string;
-  creationDate: any;
+  createdAt: any;
 }
 
 export default function ProductsManagementPage() {
@@ -44,7 +44,7 @@ export default function ProductsManagementPage() {
   const fetchProducts = async () => {
     try {
       setLoading(true);
-      const q = query(collectionGroup(db, "products"), orderBy("creationDate", "desc"));
+      const q = query(collectionGroup(db, "products"), orderBy("createdAt", "desc"));
       const snapshot = await getDocs(q);
       const productData = snapshot.docs.map(doc => ({
         id: doc.id,
@@ -201,7 +201,7 @@ export default function ProductsManagementPage() {
             <div className="flex items-start justify-between">
               <div>
                 <p className="text-[10px] font-bold text-muted-foreground uppercase tracking-widest mb-1">Avg Price</p>
-                <p className="text-3xl font-black text-slate-900 tracking-tighter">${averagePriceValue.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</p>
+                <p className="text-3xl font-black text-slate-900 tracking-tighter">₹{averagePriceValue.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</p>
               </div>
               <div className="h-10 w-10 rounded-xl bg-blue-50 flex items-center justify-center text-blue-500 group-hover:bg-blue-600 group-hover:text-white transition-colors">
                 <DollarSign className="h-5 w-5" />
@@ -271,13 +271,13 @@ export default function ProductsManagementPage() {
                       </Badge>
                     </TableCell>
                     <TableCell className="font-black text-slate-900">
-                      ${product.price?.toLocaleString(undefined, { minimumFractionDigits: 2 })}
+                      ₹{product.price?.toLocaleString(undefined, { minimumFractionDigits: 2 })}
                     </TableCell>
                     <TableCell className="text-[10px] font-mono text-muted-foreground uppercase">
                       {product.sellerId.slice(0, 12)}...
                     </TableCell>
                     <TableCell className="text-xs font-medium text-slate-500">
-                      {formatProductDate(product.creationDate)}
+                      {formatProductDate(product.createdAt)}
                     </TableCell>
                     <TableCell className="text-right pr-8">
                       <Badge className={cn(

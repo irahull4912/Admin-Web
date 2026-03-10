@@ -304,7 +304,7 @@ function UserManagementContent() {
                       </div>
                       <div className="flex justify-between items-center text-sm">
                         <span className="text-muted-foreground">Lifetime Value</span>
-                        <span className="font-bold text-emerald-600">${userPings.reduce((acc, p) => acc + (p.amount || 0), 0).toLocaleString()}</span>
+                        <span className="font-bold text-emerald-600">₹{userPings.reduce((acc, p) => acc + (p.amount || 0), 0).toLocaleString()}</span>
                       </div>
                     </div>
                   </div>
@@ -382,7 +382,7 @@ function UserManagementContent() {
                             </div>
                           </TableCell>
                           <TableCell className="font-bold text-primary">
-                            ${(productInfo.price || ping.amount || 0).toLocaleString()}
+                            ₹{(productInfo.price || ping.amount || 0).toLocaleString()}
                           </TableCell>
                           <TableCell className="text-right pr-6">
                             {getStatusBadge(ping.status)}
