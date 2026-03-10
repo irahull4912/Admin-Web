@@ -105,9 +105,9 @@ export default function ProductsManagementPage() {
             <Link href="/admin/dashboard" className="text-muted-foreground hover:text-primary transition-colors">
               <ArrowLeft className="h-4 w-4" />
             </Link>
-            <h1 className="text-3xl font-headline font-black text-foreground tracking-tight uppercase italic">Products Inventory</h1>
+            <h1 className="text-3xl font-headline font-bold text-foreground tracking-tight">Products Inventory</h1>
           </div>
-          <p className="text-muted-foreground text-lg">Detailed overview of all products listed on the platform.</p>
+          <p className="text-muted-foreground mt-1 text-lg">Detailed overview of all products listed on the platform.</p>
         </div>
         <div className="flex items-center gap-3">
           <div className="relative w-64">
