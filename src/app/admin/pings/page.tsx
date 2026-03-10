@@ -13,7 +13,7 @@ import {
 } from "@/components/ui/table";
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
-import { Zap, Search, Filter, Loader2, ArrowLeft, ShoppingCart, Store, User as UserIcon } from "lucide-react";
+import { Zap, Search, Filter, Loader2, ArrowLeft, ShoppingCart, Store, User as UserIcon, Mail } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import Link from "next/link";
@@ -24,15 +24,15 @@ interface PingRecord {
   createdAt: any;
   buyerId: string;
   shopId?: string;
-  sellerId?: string; // Fallback for older schema
+  sellerId?: string; 
   items?: { productId: string }[];
-  productId?: string; // Fallback for older schema
+  productId?: string; 
   status: string;
   amount: number;
 }
 
 interface ResolvedData {
-  users: Record<string, string>;
+  users: Record<string, string>; // Stores email address
   shops: Record<string, string>;
   products: Record<string, { name: string; price: number }>;
 }
@@ -59,7 +59,8 @@ export default function PingsManagementPage() {
 
         const users: Record<string, string> = {};
         usersSnap.forEach(doc => {
-          users[doc.id] = doc.data().name || "Unknown User";
+          // Store email as requested
+          users[doc.id] = doc.data().email || "No Email";
         });
 
         const shops: Record<string, string> = {};
@@ -83,7 +84,6 @@ export default function PingsManagementPage() {
 
     fetchResolutionData();
 
-    // Real-time listener for pings using createdAt
     const q = query(collection(db, "pings"), orderBy("createdAt", "desc"));
     const unsubscribe = onSnapshot(q, (snapshot) => {
       const pingData = snapshot.docs.map(doc => ({
@@ -103,7 +103,7 @@ export default function PingsManagementPage() {
 
   useEffect(() => {
     const results = pings.filter(ping => {
-      const buyerName = resolvedData.users[ping.buyerId] || "";
+      const buyerEmail = resolvedData.users[ping.buyerId] || "";
       const shopIdForLookup = ping.shopId || ping.sellerId || "";
       const shopName = resolvedData.shops[shopIdForLookup] || "";
       const effectiveProductId = ping.items?.[0]?.productId || ping.productId || "";
@@ -114,7 +114,7 @@ export default function PingsManagementPage() {
       return (
         pingId.toLowerCase().includes(searchTerm.toLowerCase()) ||
         status.toLowerCase().includes(searchTerm.toLowerCase()) ||
-        buyerName.toLowerCase().includes(searchTerm.toLowerCase()) ||
+        buyerEmail.toLowerCase().includes(searchTerm.toLowerCase()) ||
         shopName.toLowerCase().includes(searchTerm.toLowerCase()) ||
         productName.toLowerCase().includes(searchTerm.toLowerCase())
       );
@@ -160,13 +160,13 @@ export default function PingsManagementPage() {
             </Link>
             <h1 className="text-3xl font-headline font-bold text-foreground tracking-tight">Ping Transactions</h1>
           </div>
-          <p className="text-muted-foreground text-lg">Detailed audit log resolving buyer, shop, and product identities.</p>
+          <p className="text-muted-foreground text-lg">Detailed audit log resolving buyer email, shop, and product identities.</p>
         </div>
         <div className="flex items-center gap-3">
           <div className="relative w-64">
             <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
             <Input 
-              placeholder="Search by buyer, shop or product..." 
+              placeholder="Search by email, shop or product..." 
               className="pl-9"
               value={searchTerm}
               onChange={(e) => setSearchTerm(e.target.value)}
@@ -219,14 +219,14 @@ export default function PingsManagementPage() {
             <Zap className="h-5 w-5 text-primary" />
             <CardTitle>Master Audit Log</CardTitle>
           </div>
-          <CardDescription>Full history of resolved interactions between buyers and sellers.</CardDescription>
+          <CardDescription>Full history of resolved interactions between buyers (by email) and sellers.</CardDescription>
         </CardHeader>
         <CardContent className="p-0">
           <Table>
             <TableHeader className="bg-muted/30">
               <TableRow>
                 <TableHead className="w-[120px]">Date</TableHead>
-                <TableHead>Buyer</TableHead>
+                <TableHead>Buyer (Email)</TableHead>
                 <TableHead>Shop</TableHead>
                 <TableHead>Product Details</TableHead>
                 <TableHead>Price</TableHead>
@@ -242,12 +242,10 @@ export default function PingsManagementPage() {
                 </TableRow>
               ) : (
                 filteredPings.map((ping) => {
-                  const buyerName = resolvedData.users[ping.buyerId] || "Guest User";
-                  // Resolution per requirement: Use shopId for lookup
+                  const buyerEmail = resolvedData.users[ping.buyerId] || "Guest (No Email)";
                   const targetShopId = ping.shopId || ping.sellerId || "";
                   const shopName = resolvedData.shops[targetShopId] || "Unknown Shop";
                   
-                  // Resolution per requirement: Use ping.items?.[0]?.productId
                   const targetProductId = ping.items?.[0]?.productId || ping.productId || "";
                   const productInfo = resolvedData.products[targetProductId] || { name: "Unknown Item", price: 0 };
                   
@@ -258,8 +256,8 @@ export default function PingsManagementPage() {
                       </TableCell>
                       <TableCell>
                         <div className="flex items-center gap-2">
-                          <UserIcon className="h-3 w-3 text-muted-foreground" />
-                          <span className="font-medium text-foreground truncate max-w-[120px]">{buyerName}</span>
+                          <Mail className="h-3 w-3 text-muted-foreground" />
+                          <span className="font-medium text-foreground truncate max-w-[180px]" title={buyerEmail}>{buyerEmail}</span>
                         </div>
                       </TableCell>
                       <TableCell>
