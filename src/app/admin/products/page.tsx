@@ -24,15 +24,19 @@ import {
   Activity, 
   Store, 
   RefreshCw,
-  Info,
   Layers,
   Calendar,
   FileText,
-  CheckCircle2,
   Clock,
   User,
   Mail,
-  MapPin
+  MapPin,
+  ChevronRight,
+  ChevronLeft,
+  TicketPercent,
+  Box,
+  TrendingDown,
+  Info
 } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
@@ -50,18 +54,43 @@ import { cn } from "@/lib/utils";
 import { useToast } from "@/hooks/use-toast";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import Image from "next/image";
+import {
+  Carousel,
+  CarouselContent,
+  CarouselItem,
+  CarouselNext,
+  CarouselPrevious,
+} from "@/components/ui/carousel";
+
+interface ProductVariant {
+  color: string;
+  size: string;
+  price: number;
+  mrp: number;
+  stock: number;
+}
 
 interface Product {
   id: string;
   sellerId: string;
+  shopId?: string;
   name: string;
+  brand?: string;
   description: string;
-  price: number;
+  price?: number; // Fallback
+  sellingPrice?: number;
+  mrp?: number;
   category: string;
-  subcategory: string;
+  subCategory?: string;
+  subcategory?: string; // Legacy support
   status: string;
+  stockStatus?: string;
+  quantity?: number;
+  imageUrls?: string[];
+  offers?: string[];
+  variants?: ProductVariant[];
   createdAt: any;
-  creationDate?: any;
+  updatedAt?: any;
 }
 
 interface ShopProfile {
@@ -129,6 +158,7 @@ export default function ProductsManagementPage() {
       const shopName = shop?.name || "";
       return (
         product.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
+        (product.brand || "").toLowerCase().includes(searchTerm.toLowerCase()) ||
         product.category.toLowerCase().includes(searchTerm.toLowerCase()) ||
         shopName.toLowerCase().includes(searchTerm.toLowerCase()) ||
         product.id.toLowerCase().includes(searchTerm.toLowerCase())
@@ -168,9 +198,8 @@ export default function ProductsManagementPage() {
   };
 
   const formatProductDate = (timestamp: any) => {
-    const dateValue = timestamp || null;
-    if (!dateValue) return "N/A";
-    const date = dateValue instanceof Timestamp ? dateValue.toDate() : new Date(dateValue);
+    if (!timestamp) return "N/A";
+    const date = timestamp instanceof Timestamp ? timestamp.toDate() : new Date(timestamp);
     try {
       return format(date, "MMM d, yyyy");
     } catch {
@@ -182,7 +211,7 @@ export default function ProductsManagementPage() {
   const activeProductsCount = products.filter(p => (p.status || "").toLowerCase() === 'active').length;
   
   const averagePriceValue = products.length > 0 
-    ? products.reduce((acc, p) => acc + (p.price || 0), 0) / products.length 
+    ? products.reduce((acc, p) => acc + (p.sellingPrice || p.price || 0), 0) / products.length 
     : 0;
   const uniqueSellersCount = new Set(products.map(p => p.sellerId)).size;
 
@@ -220,15 +249,12 @@ export default function ProductsManagementPage() {
           <div className="relative w-64">
             <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
             <Input 
-              placeholder="Search products or shops..." 
+              placeholder="Search products or brands..." 
               className="pl-9 h-11 rounded-xl shadow-sm"
               value={searchTerm}
               onChange={(e) => setSearchTerm(e.target.value)}
             />
           </div>
-          <Button variant="outline" size="icon" className="h-11 w-11 rounded-xl shadow-sm">
-            <Filter className="h-4 w-4" />
-          </Button>
         </div>
       </div>
 
@@ -266,7 +292,7 @@ export default function ProductsManagementPage() {
             <div className="flex items-start justify-between">
               <div>
                 <p className="text-[10px] font-bold text-muted-foreground uppercase tracking-widest mb-1">Avg Price</p>
-                <p className="text-3xl font-black text-slate-900 tracking-tighter">₹{averagePriceValue.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</p>
+                <p className="text-3xl font-black text-slate-900 tracking-tighter">₹{averagePriceValue.toLocaleString(undefined, { minimumFractionDigits: 0, maximumFractionDigits: 0 })}</p>
               </div>
               <div className="h-10 w-10 rounded-xl bg-blue-50 flex items-center justify-center text-blue-500 group-hover:bg-blue-600 group-hover:text-white transition-colors">
                 <IndianRupee className="h-5 w-5" />
@@ -298,7 +324,7 @@ export default function ProductsManagementPage() {
             </div>
             <div>
               <CardTitle className="text-xl font-bold">Catalog Master List</CardTitle>
-              <CardDescription className="text-xs uppercase font-bold tracking-widest text-muted-foreground">Comprehensive database of all items across all shops.</CardDescription>
+              <CardDescription className="text-[10px] uppercase font-bold tracking-widest text-muted-foreground">Comprehensive database of all items across all shops.</CardDescription>
             </div>
           </div>
         </CardHeader>
@@ -324,6 +350,10 @@ export default function ProductsManagementPage() {
               ) : (
                 filteredProducts.map((product) => {
                   const shop = shopsData[product.sellerId];
+                  const currentPrice = product.sellingPrice || product.price || 0;
+                  const mrp = product.mrp || 0;
+                  const discount = mrp > currentPrice ? Math.round(((mrp - currentPrice) / mrp) * 100) : 0;
+
                   return (
                     <TableRow key={product.id} className="hover:bg-muted/10 transition-colors group">
                       <TableCell className="pl-8">
@@ -331,17 +361,20 @@ export default function ProductsManagementPage() {
                           <DialogTrigger asChild>
                             <button className="flex flex-col items-start text-left hover:text-primary transition-colors group/name outline-none">
                               <span className="font-black text-slate-900 group-hover/name:underline decoration-primary/30 underline-offset-4">{product.name}</span>
-                              <span className="text-[10px] text-muted-foreground font-mono uppercase tracking-tighter">UID: {product.id.slice(0, 12)}</span>
+                              <div className="flex items-center gap-2 mt-0.5">
+                                {product.brand && <Badge variant="secondary" className="text-[9px] h-4 px-1.5 font-bold uppercase">{product.brand}</Badge>}
+                                <span className="text-[9px] text-muted-foreground font-mono uppercase tracking-tighter">UID: {product.id.slice(0, 12)}</span>
+                              </div>
                             </button>
                           </DialogTrigger>
-                          <DialogContent className="sm:max-w-[800px] max-h-[90vh] p-0 overflow-hidden border-none shadow-2xl rounded-3xl">
-                            <ScrollArea className="h-full max-h-[90vh]">
-                              <div className="p-10 space-y-10 pb-16">
+                          <DialogContent className="sm:max-w-[1000px] max-h-[95vh] p-0 overflow-hidden border-none shadow-2xl rounded-3xl">
+                            <ScrollArea className="h-full max-h-[95vh]">
+                              <div className="p-8 space-y-8 pb-16">
                                 <DialogHeader>
-                                  <div className="flex items-center justify-between mb-6">
+                                  <div className="flex items-center justify-between mb-4">
                                     <div className="flex items-center gap-3">
                                       <Badge variant="outline" className="text-[10px] uppercase font-bold tracking-widest bg-slate-50 px-3 py-1 border-slate-200">UID: {product.id}</Badge>
-                                      <Badge variant="outline" className="text-[10px] uppercase font-bold tracking-widest bg-slate-50 px-3 py-1 border-slate-200">Shop Ref: {product.sellerId.slice(0, 8)}...</Badge>
+                                      {product.brand && <Badge className="bg-primary text-white text-[10px] font-black tracking-widest px-3 py-1 uppercase">{product.brand}</Badge>}
                                     </div>
                                     <Badge className={cn(
                                       "px-4 py-1.5 shadow-none uppercase text-[10px] font-black tracking-widest",
@@ -353,83 +386,113 @@ export default function ProductsManagementPage() {
                                     </Badge>
                                   </div>
                                   <DialogTitle className="text-4xl font-headline font-black text-slate-900 leading-tight">{product.name}</DialogTitle>
-                                  <DialogDescription className="text-lg text-slate-500 font-medium italic">Detailed catalog dossier and merchant mapping.</DialogDescription>
+                                  <DialogDescription className="text-lg text-slate-500 font-medium italic">Detailed technical dossier and multi-dimensional mapping.</DialogDescription>
                                 </DialogHeader>
 
-                                <div className="relative aspect-video w-full rounded-3xl overflow-hidden border-4 border-white shadow-xl bg-slate-100 group">
-                                  <Image 
-                                    src={`https://picsum.photos/seed/${product.id}/800/450`} 
-                                    alt={product.name} 
-                                    fill 
-                                    className="object-cover group-hover:scale-105 transition-transform duration-700"
-                                    data-ai-hint="product item"
-                                  />
-                                  <div className="absolute inset-0 bg-gradient-to-t from-black/40 to-transparent pointer-events-none" />
-                                  <div className="absolute bottom-6 left-6 flex items-center gap-2">
-                                    <div className="bg-white/90 backdrop-blur p-2 rounded-xl shadow-lg border border-white/20">
-                                      <p className="text-[10px] font-bold text-muted-foreground uppercase tracking-widest leading-none mb-1">Price Point</p>
-                                      <p className="text-2xl font-black text-primary leading-none">₹{(product.price || 0).toLocaleString()}</p>
+                                {/* Multi-Image Gallery */}
+                                <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
+                                  <div className="space-y-6">
+                                    <div className="relative aspect-square w-full rounded-3xl overflow-hidden border-4 border-white shadow-xl bg-slate-100 group">
+                                      {product.imageUrls && product.imageUrls.length > 0 ? (
+                                        <Carousel className="w-full h-full">
+                                          <CarouselContent className="h-full">
+                                            {product.imageUrls.map((url, idx) => (
+                                              <CarouselItem key={idx} className="relative aspect-square">
+                                                <Image 
+                                                  src={url} 
+                                                  alt={`${product.name} ${idx + 1}`} 
+                                                  fill 
+                                                  className="object-cover"
+                                                />
+                                              </CarouselItem>
+                                            ))}
+                                          </CarouselContent>
+                                          {product.imageUrls.length > 1 && (
+                                            <>
+                                              <CarouselPrevious className="left-4" />
+                                              <CarouselNext className="right-4" />
+                                            </>
+                                          )}
+                                        </Carousel>
+                                      ) : (
+                                        <div className="flex flex-col items-center justify-center h-full text-slate-300">
+                                          <Package className="h-20 w-20 opacity-10" />
+                                          <p className="text-xs uppercase font-bold tracking-widest opacity-20">No assets provided</p>
+                                        </div>
+                                      )}
+                                      <div className="absolute top-4 left-4">
+                                        <Badge className="bg-white/90 backdrop-blur text-primary text-[10px] font-black px-3 py-1 shadow-lg border-white/20">
+                                          {product.stockStatus || "Active Stock"}
+                                        </Badge>
+                                      </div>
                                     </div>
-                                  </div>
-                                </div>
 
-                                <div className="grid grid-cols-1 md:grid-cols-2 gap-10">
+                                    {/* Pricing Analysis */}
+                                    <section className="space-y-4">
+                                      <h4 className="text-[10px] font-bold text-slate-400 uppercase tracking-widest flex items-center gap-2 px-1"><IndianRupee className="h-3.5 w-3.5 text-primary" /> Pricing & Yield Analysis</h4>
+                                      <div className="grid grid-cols-3 gap-4">
+                                        <div className="bg-slate-50/50 p-4 rounded-2xl border border-slate-100 shadow-sm text-center">
+                                          <p className="text-[8px] text-muted-foreground uppercase font-bold mb-1">Selling Price</p>
+                                          <p className="text-xl font-black text-primary">₹{(product.sellingPrice || product.price || 0).toLocaleString()}</p>
+                                        </div>
+                                        <div className="bg-slate-50/50 p-4 rounded-2xl border border-slate-100 shadow-sm text-center">
+                                          <p className="text-[8px] text-muted-foreground uppercase font-bold mb-1">MRP Value</p>
+                                          <p className="text-xl font-black text-slate-400 line-through">₹{(product.mrp || 0).toLocaleString()}</p>
+                                        </div>
+                                        <div className="bg-emerald-50/50 p-4 rounded-2xl border border-emerald-100 shadow-sm text-center">
+                                          <p className="text-[8px] text-emerald-600 uppercase font-bold mb-1">Discount %</p>
+                                          <div className="flex items-center justify-center gap-1">
+                                            <TrendingDown className="h-3 w-3 text-emerald-500" />
+                                            <p className="text-xl font-black text-emerald-700">{discount}%</p>
+                                          </div>
+                                        </div>
+                                      </div>
+                                    </section>
+                                  </div>
+
                                   <div className="space-y-8">
+                                    {/* Offers Section */}
+                                    {product.offers && product.offers.length > 0 && (
+                                      <section className="space-y-4">
+                                        <h4 className="text-[10px] font-bold text-slate-400 uppercase tracking-widest flex items-center gap-2 px-1"><TicketPercent className="h-3.5 w-3.5 text-amber-500" /> Promotional Campaigns</h4>
+                                        <div className="bg-amber-50/30 p-4 rounded-2xl border border-amber-100 space-y-2">
+                                          {product.offers.map((offer, i) => (
+                                            <div key={i} className="flex items-start gap-2 text-xs font-semibold text-amber-800 bg-white/50 p-2 rounded-lg border border-amber-100">
+                                              <div className="h-1.5 w-1.5 rounded-full bg-amber-500 mt-1.5 shrink-0" />
+                                              {offer}
+                                            </div>
+                                          ))}
+                                        </div>
+                                      </section>
+                                    )}
+
                                     <section className="space-y-4">
                                       <h4 className="text-[10px] font-bold text-slate-400 uppercase tracking-widest flex items-center gap-2 px-1"><Layers className="h-3.5 w-3.5 text-primary" /> Classification</h4>
                                       <div className="bg-slate-50/50 p-6 rounded-2xl border border-slate-100 space-y-5 shadow-sm">
                                         <div className="grid grid-cols-2 gap-4">
                                           <div><p className="text-[9px] text-muted-foreground uppercase font-bold mb-1">Category</p><p className="font-bold text-sm text-slate-900">{product.category}</p></div>
-                                          <div><p className="text-[9px] text-muted-foreground uppercase font-bold mb-1">Subcategory</p><p className="font-bold text-sm text-slate-900">{product.subcategory || "N/A"}</p></div>
+                                          <div><p className="text-[9px] text-muted-foreground uppercase font-bold mb-1">Subcategory</p><p className="font-bold text-sm text-slate-900">{product.subCategory || product.subcategory || "N/A"}</p></div>
+                                          <div><p className="text-[9px] text-muted-foreground uppercase font-bold mb-1">Total Quantity</p><p className="font-bold text-sm text-slate-900 flex items-center gap-2"><Box className="h-3.5 w-3.5 text-slate-400" /> {product.quantity || 0}</p></div>
+                                          <div><p className="text-[9px] text-muted-foreground uppercase font-bold mb-1">Stock Status</p><p className="font-bold text-sm text-emerald-600">{product.stockStatus || "In Stock"}</p></div>
                                         </div>
                                       </div>
                                     </section>
 
                                     <section className="space-y-4">
                                       <h4 className="text-[10px] font-bold text-slate-400 uppercase tracking-widest flex items-center gap-2 px-1"><Store className="h-3.5 w-3.5 text-blue-500" /> Merchant Mapping</h4>
-                                      <div className="bg-slate-50/50 p-6 rounded-2xl border border-slate-100 space-y-5 shadow-sm">
+                                      <div className="bg-slate-50/50 p-6 rounded-2xl border border-slate-100 space-y-4 shadow-sm">
                                         <div>
                                           <p className="text-[9px] text-muted-foreground uppercase font-bold mb-1">Associated Shop</p>
                                           <p className="font-black text-lg text-slate-900 leading-tight">{shop?.name || "Unknown Shop"}</p>
                                         </div>
-                                        <div className="pt-4 border-t border-slate-200/50 space-y-4">
+                                        <div className="grid grid-cols-1 gap-3 pt-3 border-t border-slate-200/50">
                                           <div className="flex items-center gap-3">
-                                            <div className="p-2 bg-white rounded-lg border border-slate-100"><User className="h-3.5 w-3.5 text-slate-400" /></div>
+                                            <User className="h-3.5 w-3.5 text-slate-400" />
                                             <div><p className="text-[8px] text-muted-foreground uppercase font-bold">Principal Agent</p><p className="font-bold text-xs">{shop?.ownerName || "N/A"}</p></div>
                                           </div>
                                           <div className="flex items-center gap-3">
-                                            <div className="p-2 bg-white rounded-lg border border-slate-100"><Mail className="h-3.5 w-3.5 text-primary" /></div>
-                                            <div><p className="text-[8px] text-muted-foreground uppercase font-bold">Contact Channel</p><p className="font-bold text-xs text-primary underline truncate max-w-[200px]">{shop?.contactEmail || "N/A"}</p></div>
-                                          </div>
-                                          <div className="flex items-center gap-3">
-                                            <div className="p-2 bg-white rounded-lg border border-slate-100"><MapPin className="h-3.5 w-3.5 text-destructive" /></div>
-                                            <div><p className="text-[8px] text-muted-foreground uppercase font-bold">Base Location</p><p className="font-bold text-xs">{shop ? `${shop.city}, ${shop.state}` : "N/A"}</p></div>
-                                          </div>
-                                        </div>
-                                      </div>
-                                    </section>
-                                  </div>
-
-                                  <div className="space-y-8">
-                                    <section className="space-y-4">
-                                      <h4 className="text-[10px] font-bold text-slate-400 uppercase tracking-widest flex items-center gap-2 px-1"><FileText className="h-3.5 w-3.5 text-slate-400" /> Item Description</h4>
-                                      <div className="bg-white p-6 rounded-2xl border border-slate-100 shadow-sm min-h-[140px]">
-                                        <p className="text-xs text-slate-600 leading-relaxed font-medium">
-                                          {product.description || "No description provided for this catalog entry. Administrators should ensure the merchant provides accurate item details for buyer confidence."}
-                                        </p>
-                                      </div>
-                                    </section>
-
-                                    <section className="space-y-4">
-                                      <h4 className="text-[10px] font-bold text-slate-400 uppercase tracking-widest flex items-center gap-2 px-1"><Calendar className="h-3.5 w-3.5 text-slate-400" /> Audit Timeline</h4>
-                                      <div className="bg-slate-50/50 p-5 rounded-2xl border border-slate-100 shadow-sm">
-                                        <div className="flex items-center gap-3">
-                                          <div className="bg-white p-2 rounded-lg shadow-sm">
-                                            <Clock className="h-4 w-4 text-slate-400" />
-                                          </div>
-                                          <div>
-                                            <p className="text-[9px] text-muted-foreground uppercase font-bold">Catalog Entry Created</p>
-                                            <p className="font-bold text-xs text-slate-700">{formatProductDate(product.createdAt || product.creationDate)}</p>
+                                            <Mail className="h-3.5 w-3.5 text-primary" />
+                                            <div><p className="text-[8px] text-muted-foreground uppercase font-bold">Contact Channel</p><p className="font-bold text-xs text-primary underline">{shop?.contactEmail || "N/A"}</p></div>
                                           </div>
                                         </div>
                                       </div>
@@ -437,13 +500,67 @@ export default function ProductsManagementPage() {
                                   </div>
                                 </div>
 
-                                <div className="flex gap-4 pt-10 border-t border-slate-100">
+                                {/* Variants Matrix */}
+                                {product.variants && product.variants.length > 0 && (
+                                  <section className="space-y-4">
+                                    <h4 className="text-[10px] font-bold text-slate-400 uppercase tracking-widest flex items-center gap-2 px-1"><Activity className="h-3.5 w-3.5 text-emerald-500" /> SKU Variant Matrix</h4>
+                                    <div className="border border-slate-100 rounded-2xl overflow-hidden shadow-sm">
+                                      <Table>
+                                        <TableHeader className="bg-slate-50">
+                                          <TableRow>
+                                            <TableHead className="text-[9px] uppercase font-bold">Color / Size</TableHead>
+                                            <TableHead className="text-[9px] uppercase font-bold">Selling Price</TableHead>
+                                            <TableHead className="text-[9px] uppercase font-bold">MRP</TableHead>
+                                            <TableHead className="text-[9px] uppercase font-bold text-right">Available Stock</TableHead>
+                                          </TableRow>
+                                        </TableHeader>
+                                        <TableBody>
+                                          {product.variants.map((variant, vIdx) => (
+                                            <TableRow key={vIdx} className="hover:bg-slate-50/50 border-slate-50">
+                                              <TableCell className="py-3">
+                                                <div className="flex flex-col">
+                                                  <span className="font-bold text-sm text-slate-900">{variant.color}</span>
+                                                  <span className="text-[10px] text-muted-foreground uppercase font-bold tracking-tighter">{variant.size}</span>
+                                                </div>
+                                              </TableCell>
+                                              <TableCell className="font-black text-primary text-sm">₹{variant.price.toLocaleString()}</TableCell>
+                                              <TableCell className="text-muted-foreground text-xs line-through">₹{variant.mrp.toLocaleString()}</TableCell>
+                                              <TableCell className="text-right py-3">
+                                                <Badge variant="outline" className={cn(
+                                                  "font-black text-[10px] px-2 py-0.5",
+                                                  variant.stock > 5 ? "text-emerald-600 bg-emerald-50 border-emerald-100" : "text-amber-600 bg-amber-50 border-amber-100"
+                                                )}>
+                                                  {variant.stock} UNITS
+                                                </Badge>
+                                              </TableCell>
+                                            </TableRow>
+                                          ))}
+                                        </TableBody>
+                                      </Table>
+                                    </div>
+                                  </section>
+                                )}
+
+                                <section className="space-y-4">
+                                  <h4 className="text-[10px] font-bold text-slate-400 uppercase tracking-widest flex items-center gap-2 px-1"><FileText className="h-3.5 w-3.5 text-slate-400" /> Performance Dossier</h4>
+                                  <div className="bg-white p-6 rounded-3xl border border-slate-100 shadow-sm min-h-[140px]">
+                                    <p className="text-xs text-slate-600 leading-relaxed font-medium whitespace-pre-line">
+                                      {product.description}
+                                    </p>
+                                  </div>
+                                </section>
+
+                                <div className="flex gap-4 pt-8 border-t border-slate-100 items-center justify-between">
+                                  <div className="flex items-center gap-4 text-xs text-muted-foreground font-medium">
+                                    <div className="flex items-center gap-1.5"><Calendar className="h-3.5 w-3.5" /> Registered: {formatProductDate(product.createdAt)}</div>
+                                    <div className="flex items-center gap-1.5"><Clock className="h-3.5 w-3.5" /> Last Update: {formatProductDate(product.updatedAt || product.createdAt)}</div>
+                                  </div>
                                   <Button 
-                                    className="flex-1 h-16 rounded-3xl bg-primary hover:bg-primary/90 text-white font-black uppercase tracking-widest text-xs shadow-xl shadow-primary/20 transition-all active:scale-95"
+                                    className="h-12 px-8 rounded-2xl bg-primary hover:bg-primary/90 text-white font-black uppercase tracking-widest text-[10px] shadow-xl shadow-primary/20 transition-all active:scale-95"
                                     asChild
                                   >
                                     <Link href={`/admin/pings?search=${encodeURIComponent(product.name)}`}>
-                                      <Activity className="h-5 w-5 mr-3" /> View Transaction Pings
+                                      <Activity className="h-4 w-4 mr-2.5" /> View Audit Pings
                                     </Link>
                                   </Button>
                                 </div>
@@ -453,12 +570,15 @@ export default function ProductsManagementPage() {
                         </Dialog>
                       </TableCell>
                       <TableCell>
-                        <Badge variant="outline" className="font-bold uppercase text-[10px] tracking-tighter bg-slate-50 text-slate-500 border-slate-200 shadow-none">
+                        <Badge variant="outline" className="font-bold uppercase text-[9px] tracking-tighter bg-slate-50 text-slate-500 border-slate-200 shadow-none">
                           {product.category}
                         </Badge>
                       </TableCell>
-                      <TableCell className="font-black text-slate-900">
-                        ₹{(product.price || 0).toLocaleString(undefined, { minimumFractionDigits: 2 })}
+                      <TableCell>
+                        <div className="flex flex-col">
+                          <span className="font-black text-slate-900 text-sm">₹{currentPrice.toLocaleString()}</span>
+                          {discount > 0 && <span className="text-[10px] text-emerald-600 font-bold">-{discount}% OFF</span>}
+                        </div>
                       </TableCell>
                       <TableCell>
                         <div className="flex items-center gap-2">
@@ -469,7 +589,7 @@ export default function ProductsManagementPage() {
                         </div>
                       </TableCell>
                       <TableCell className="text-xs font-medium text-slate-500">
-                        {formatProductDate(product.createdAt || product.creationDate)}
+                        {formatProductDate(product.createdAt)}
                       </TableCell>
                       <TableCell className="text-right pr-8">
                         <Badge className={cn(
