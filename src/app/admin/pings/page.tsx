@@ -23,8 +23,10 @@ interface PingRecord {
   id: string;
   createdAt: any;
   buyerId: string;
-  sellerId: string;
-  productId: string;
+  shopId?: string;
+  sellerId?: string; // Fallback for older schema
+  items?: { productId: string }[];
+  productId?: string; // Fallback for older schema
   status: string;
   amount: number;
 }
@@ -102,8 +104,10 @@ export default function PingsManagementPage() {
   useEffect(() => {
     const results = pings.filter(ping => {
       const buyerName = resolvedData.users[ping.buyerId] || "";
-      const shopName = resolvedData.shops[ping.sellerId] || "";
-      const productName = resolvedData.products[ping.productId]?.name || "";
+      const shopIdForLookup = ping.shopId || ping.sellerId || "";
+      const shopName = resolvedData.shops[shopIdForLookup] || "";
+      const effectiveProductId = ping.items?.[0]?.productId || ping.productId || "";
+      const productName = resolvedData.products[effectiveProductId]?.name || "";
       const status = ping.status || "";
       const pingId = ping.id || "";
       
@@ -239,8 +243,13 @@ export default function PingsManagementPage() {
               ) : (
                 filteredPings.map((ping) => {
                   const buyerName = resolvedData.users[ping.buyerId] || "Guest User";
-                  const shopName = resolvedData.shops[ping.sellerId] || "Unknown Shop";
-                  const productInfo = resolvedData.products[ping.productId] || { name: "Unknown Item", price: 0 };
+                  // Resolution per requirement: Use shopId for lookup
+                  const targetShopId = ping.shopId || ping.sellerId || "";
+                  const shopName = resolvedData.shops[targetShopId] || "Unknown Shop";
+                  
+                  // Resolution per requirement: Use ping.items?.[0]?.productId
+                  const targetProductId = ping.items?.[0]?.productId || ping.productId || "";
+                  const productInfo = resolvedData.products[targetProductId] || { name: "Unknown Item", price: 0 };
                   
                   return (
                     <TableRow key={ping.id} className="hover:bg-muted/20 transition-colors">
@@ -265,7 +274,7 @@ export default function PingsManagementPage() {
                           <div className="flex flex-col">
                             <span className="font-semibold text-sm truncate max-w-[150px]">{productInfo.name}</span>
                             <span className="text-[10px] text-muted-foreground font-mono">
-                              {ping.productId ? `${ping.productId.slice(0, 8)}...` : "N/A"}
+                              {targetProductId ? `${targetProductId.slice(0, 8)}...` : "N/A"}
                             </span>
                           </div>
                         </div>
