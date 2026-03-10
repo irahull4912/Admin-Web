@@ -17,7 +17,7 @@ import { StatCard } from "../components/stat-card";
 import { 
   Users, 
   Package, 
-  DollarSign,
+  IndianRupee,
   Zap,
   Activity,
   Clock,
@@ -174,7 +174,7 @@ export default function AdminDashboardPage() {
         <StatCard 
           label="Total Revenue" 
           value={loading ? "..." : `₹${totalRevenue.toLocaleString()}`} 
-          icon={DollarSign} 
+          icon={IndianRupee} 
           trend="+22.5%" 
           trendType="positive"
         />

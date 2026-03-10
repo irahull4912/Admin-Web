@@ -13,7 +13,7 @@ import {
 } from "@/components/ui/table";
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
-import { Package, Search, Filter, Loader2, ArrowLeft, Tag, DollarSign, Activity, Store, RefreshCw } from "lucide-react";
+import { Package, Search, Filter, Loader2, ArrowLeft, Tag, IndianRupee, Activity, Store, RefreshCw } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import Link from "next/link";
@@ -204,7 +204,7 @@ export default function ProductsManagementPage() {
                 <p className="text-3xl font-black text-slate-900 tracking-tighter">₹{averagePriceValue.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</p>
               </div>
               <div className="h-10 w-10 rounded-xl bg-blue-50 flex items-center justify-center text-blue-500 group-hover:bg-blue-600 group-hover:text-white transition-colors">
-                <DollarSign className="h-5 w-5" />
+                <IndianRupee className="h-5 w-5" />
               </div>
             </div>
           </CardContent>
