@@ -52,6 +52,7 @@ import {
   DialogTrigger 
 } from "@/components/ui/dialog";
 import Image from "next/image";
+import Link from "next/link";
 
 interface PendingShop {
   id: string;
@@ -140,7 +141,7 @@ export default function AdminDashboardPage() {
         setPingStats(stats);
 
       } catch (error) {
-        // Silently handled as per guidelines - centralized listener catches permission errors
+        // Centralized error listener handles this
       } finally {
         setLoading(false);
       }
@@ -229,9 +230,11 @@ export default function AdminDashboardPage() {
             <div className="flex items-center justify-between">
               <div>
                 <CardTitle className="text-xl">Shop Approvals</CardTitle>
-                <CardDescription>Manage new merchant registrations in real-time.</CardDescription>
+                <CardDescription>Review and manage new merchant registrations.</CardDescription>
               </div>
-              <Store className="h-5 w-5 text-primary" />
+              <Button variant="outline" size="sm" asChild>
+                <Link href="/admin/shops/pending">View All Pending</Link>
+              </Button>
             </div>
           </CardHeader>
           <CardContent className="p-0">
@@ -249,7 +252,7 @@ export default function AdminDashboardPage() {
                     <TableCell colSpan={3} className="h-24 text-center text-muted-foreground">No pending approvals.</TableCell>
                   </TableRow>
                 ) : (
-                  pendingShops.map((shop) => (
+                  pendingShops.slice(0, 5).map((shop) => (
                     <TableRow key={shop.id} className="hover:bg-muted/20 transition-colors">
                       <TableCell className="font-semibold">{shop.name}</TableCell>
                       <TableCell>{shop.ownerName || "N/A"}</TableCell>
