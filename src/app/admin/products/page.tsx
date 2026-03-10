@@ -112,7 +112,6 @@ export default function ProductsManagementPage() {
     }
   };
 
-  // Precise calculations as requested
   const totalProductsCount = products.length;
   const activeProductsCount = products.filter(p => (p.status || "").toLowerCase() === 'active').length;
   
@@ -241,9 +240,9 @@ export default function ProductsManagementPage() {
           <Table>
             <TableHeader className="bg-slate-50/30">
               <TableRow>
-                <TableHead className="pl-8 font-bold uppercase text-[10px] tracking-widest py-5">Product Identity</TableHead>
+                <TableHead className="pl-8 font-bold uppercase text-[10px] tracking-widest py-5">Product</TableHead>
                 <TableHead className="font-bold uppercase text-[10px] tracking-widest py-5">Category</TableHead>
-                <TableHead className="font-bold uppercase text-[10px] tracking-widest py-5">Price Point</TableHead>
+                <TableHead className="font-bold uppercase text-[10px] tracking-widest py-5">Price</TableHead>
                 <TableHead className="font-bold uppercase text-[10px] tracking-widest py-5">Seller ID</TableHead>
                 <TableHead className="font-bold uppercase text-[10px] tracking-widest py-5">Created</TableHead>
                 <TableHead className="text-right pr-8 font-bold uppercase text-[10px] tracking-widest py-5">Status</TableHead>
