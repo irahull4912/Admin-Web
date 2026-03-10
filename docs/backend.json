@@ -54,7 +54,11 @@
         },
         "name": {
           "type": "string",
-          "description": "The display name of the user."
+          "description": "The legal name of the user."
+        },
+        "displayName": {
+          "type": "string",
+          "description": "The public-facing name of the user."
         },
         "createdAt": {
           "type": "string",
@@ -86,7 +90,6 @@
       "required": [
         "id",
         "email",
-        "name",
         "createdAt",
         "status"
       ]

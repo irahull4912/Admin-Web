@@ -35,7 +35,7 @@ import Link from "next/link";
 
 interface UserProfile {
   id: string;
-  name: string;
+  name?: string;
   displayName?: string;
   email: string;
   status: string;
@@ -176,7 +176,9 @@ function UserManagementContent() {
                     <p className="text-[10px] font-bold text-muted-foreground uppercase tracking-widest flex items-center gap-1.5">
                       <User className="h-3 w-3" /> Full Name
                     </p>
-                    <p className="text-lg font-bold text-foreground">{foundUser.displayName || foundUser.name}</p>
+                    <p className="text-lg font-bold text-foreground">
+                      {foundUser.displayName || foundUser.name || "N/A"}
+                    </p>
                   </div>
 
                   <div className="space-y-1">
