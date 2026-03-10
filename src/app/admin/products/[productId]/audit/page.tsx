@@ -33,6 +33,8 @@ interface PingRecord {
   buyerId: string;
   status: string;
   amount: number;
+  productId?: string;
+  items?: { productId: string; price: number }[];
 }
 
 interface Product {
@@ -40,6 +42,8 @@ interface Product {
   name: string;
   brand?: string;
   category: string;
+  price?: number;
+  sellingPrice?: number;
 }
 
 export default function ProductAuditPage({ params }: { params: Promise<{ productId: string }> }) {
@@ -57,24 +61,25 @@ export default function ProductAuditPage({ params }: { params: Promise<{ product
         // Fetch Product Info using collectionGroup
         const productsSnap = await getDocs(collectionGroup(db, "products"));
         const productDoc = productsSnap.docs.find(d => d.id === productId);
+        let productData: Product | null = null;
         if (productDoc) {
-          setProduct({ id: productDoc.id, ...productDoc.data() } as Product);
+          productData = { id: productDoc.id, ...productDoc.data() } as Product;
+          setProduct(productData);
         }
 
-        // Real-time listener for pings associated with this productId
-        // We do not use orderBy here to avoid requiring a composite index during development
-        const q = query(
-          collection(db, "pings"), 
-          where("productId", "==", productId)
-        );
+        // Fetch Pings. We check for productId (singular) and also array-contains if it's multiple
+        // To be safe and avoid index issues, we'll fetch based on the most common patterns
+        const pingsRef = collection(db, "pings");
+        
+        // Listener for pings associated with this productId
+        const q = query(pingsRef);
 
         const unsubscribe = onSnapshot(q, async (snapshot) => {
-          const pingData = snapshot.docs.map(doc => ({
-            id: doc.id,
-            ...doc.data()
-          })) as PingRecord[];
+          const pingData = snapshot.docs
+            .map(doc => ({ id: doc.id, ...doc.data() } as PingRecord))
+            .filter(p => p.productId === productId || p.items?.some(i => i.productId === productId));
           
-          // Perform client-side sort for immediate usability
+          // Perform client-side sort
           const sortedPings = pingData.sort((a, b) => {
             const timeA = a.createdAt instanceof Timestamp ? a.createdAt.toMillis() : new Date(a.createdAt).getTime();
             const timeB = b.createdAt instanceof Timestamp ? b.createdAt.toMillis() : new Date(b.createdAt).getTime();
@@ -83,7 +88,7 @@ export default function ProductAuditPage({ params }: { params: Promise<{ product
 
           setPings(sortedPings);
 
-          // Resolve buyer emails for the unique set of buyers in these pings
+          // Resolve buyer emails
           const uniqueBuyerIds = Array.from(new Set(sortedPings.map(p => p.buyerId)));
           if (uniqueBuyerIds.length > 0) {
             const usersSnap = await getDocs(collection(db, "users"));
@@ -119,7 +124,10 @@ export default function ProductAuditPage({ params }: { params: Promise<{ product
     return <Badge variant="outline" className="uppercase font-bold text-[10px]">{status}</Badge>;
   };
 
-  const totalYield = pings.reduce((acc, p) => acc + (p.amount || 0), 0);
+  const totalYield = pings.reduce((acc, p) => {
+    const amount = p.amount || p.items?.find(i => i.productId === productId)?.price || product?.sellingPrice || product?.price || 0;
+    return acc + amount;
+  }, 0);
 
   if (loading) {
     return (
@@ -195,7 +203,7 @@ export default function ProductAuditPage({ params }: { params: Promise<{ product
             </div>
             <div>
               <CardTitle className="text-xl">Historical Performance Ledger</CardTitle>
-              <CardDescription className="text-[10px] uppercase font-bold tracking-widest text-muted-foreground">Resolved audit trail mapping buyer identities to successful yields.</CardDescription>
+              <CardDescription className="text-[10px] uppercase font-bold tracking-widest text-muted-foreground">Resolved audit trail mapping buyer identities to actual yields.</CardDescription>
             </div>
           </div>
         </CardHeader>
@@ -205,7 +213,7 @@ export default function ProductAuditPage({ params }: { params: Promise<{ product
               <TableRow>
                 <TableHead className="pl-8 py-5 font-bold uppercase text-[10px] tracking-widest text-slate-500">Timestamp</TableHead>
                 <TableHead className="py-5 font-bold uppercase text-[10px] tracking-widest text-slate-500">Buyer Entity (Email)</TableHead>
-                <TableHead className="py-5 font-bold uppercase text-[10px] tracking-widest text-slate-500">Transaction yield</TableHead>
+                <TableHead className="py-5 font-bold uppercase text-[10px] tracking-widest text-slate-500">Price</TableHead>
                 <TableHead className="text-right pr-8 py-5 font-bold uppercase text-[10px] tracking-widest text-slate-500">Status</TableHead>
               </TableRow>
             </TableHeader>
@@ -217,25 +225,29 @@ export default function ProductAuditPage({ params }: { params: Promise<{ product
                   </TableCell>
                 </TableRow>
               ) : (
-                pings.map((ping) => (
-                  <TableRow key={ping.id} className="hover:bg-muted/10 transition-colors group">
-                    <TableCell className="pl-8 text-xs font-mono font-medium text-muted-foreground">
-                      {ping.createdAt instanceof Timestamp ? format(ping.createdAt.toDate(), "MMM d, yyyy HH:mm") : "N/A"}
-                    </TableCell>
-                    <TableCell>
-                      <div className="flex items-center gap-2">
-                        <Mail className="h-3.5 w-3.5 text-primary/50" />
-                        <span className="font-bold text-sm text-slate-700">{buyerEmails[ping.buyerId] || "Resolving..."}</span>
-                      </div>
-                    </TableCell>
-                    <TableCell className="font-black text-primary text-sm">
-                      ₹{(ping.amount || 0).toLocaleString()}
-                    </TableCell>
-                    <TableCell className="text-right pr-8">
-                      {getStatusBadge(ping.status)}
-                    </TableCell>
-                  </TableRow>
-                ))
+                pings.map((ping) => {
+                  const displayPrice = ping.amount || ping.items?.find(i => i.productId === productId)?.price || product?.sellingPrice || product?.price || 0;
+                  
+                  return (
+                    <TableRow key={ping.id} className="hover:bg-muted/10 transition-colors group">
+                      <TableCell className="pl-8 text-xs font-mono font-medium text-muted-foreground">
+                        {ping.createdAt instanceof Timestamp ? format(ping.createdAt.toDate(), "MMM d, yyyy HH:mm") : "N/A"}
+                      </TableCell>
+                      <TableCell>
+                        <div className="flex items-center gap-2">
+                          <Mail className="h-3.5 w-3.5 text-primary/50" />
+                          <span className="font-bold text-sm text-slate-700">{buyerEmails[ping.buyerId] || "Resolving..."}</span>
+                        </div>
+                      </TableCell>
+                      <TableCell className="font-black text-primary text-sm">
+                        ₹{displayPrice.toLocaleString()}
+                      </TableCell>
+                      <TableCell className="text-right pr-8">
+                        {getStatusBadge(ping.status)}
+                      </TableCell>
+                    </TableRow>
+                  );
+                })
               )}
             </TableBody>
           </Table>
