@@ -246,12 +246,13 @@ export default function ProductsManagementPage() {
         <div className="flex items-center gap-3">
           <Button 
             variant="secondary" 
-            className="h-11 px-6 rounded-xl shadow-sm font-bold gap-2 bg-primary/5 text-primary hover:bg-primary/10 transition-all"
+            size="icon"
+            className="h-11 w-11 rounded-xl shadow-sm bg-primary/5 text-primary hover:bg-primary/10 transition-all"
             onClick={handleBulkUpdateStatus}
             disabled={updating}
+            title="Sync Active Status"
           >
-            {updating ? <RefreshCw className="h-4 w-4 animate-spin" /> : <RefreshCw className="h-4 w-4" />}
-            Sync Active Status
+            <RefreshCw className={cn("h-4 w-4", updating && "animate-spin")} />
           </Button>
           <div className="relative w-64">
             <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
