@@ -29,7 +29,6 @@ import {
   Clock,
   User,
   Mail,
-  TicketPercent,
   Box,
   TrendingDown
 } from "lucide-react";
@@ -332,7 +331,6 @@ export default function ProductsManagementPage() {
             </div>
             <div>
               <CardTitle className="text-xl font-bold">Catalog Master List</CardTitle>
-              <CardDescription className="text-[10px] uppercase font-bold tracking-widest text-muted-foreground">Comprehensive database of all items across all shops.</CardDescription>
             </div>
           </div>
         </CardHeader>
