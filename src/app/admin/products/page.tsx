@@ -366,11 +366,13 @@ export default function ProductsManagementPage() {
                         <Dialog>
                           <DialogTrigger asChild>
                             <button className="flex flex-col items-start text-left hover:text-primary transition-colors group/name outline-none">
+                              {product.brand && (
+                                <span className="text-[10px] font-black text-primary uppercase tracking-widest mb-0.5">
+                                  {product.brand}
+                                </span>
+                              )}
                               <span className="font-black text-slate-900 group-hover/name:underline decoration-primary/30 underline-offset-4">{product.name}</span>
-                              <div className="flex items-center gap-2 mt-0.5">
-                                {product.brand && <Badge variant="secondary" className="text-[9px] h-4 px-1.5 font-bold uppercase">{product.brand}</Badge>}
-                                <span className="text-[9px] text-muted-foreground font-mono uppercase tracking-tighter">UID: {product.id.slice(0, 12)}</span>
-                              </div>
+                              <span className="text-[9px] text-muted-foreground font-mono uppercase tracking-tighter mt-1">UID: {product.id.slice(0, 12)}</span>
                             </button>
                           </DialogTrigger>
                           <DialogContent className="sm:max-w-[1000px] max-h-[95vh] p-0 overflow-hidden border-none shadow-2xl rounded-3xl">
