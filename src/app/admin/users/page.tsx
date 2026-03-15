@@ -23,15 +23,12 @@ import {
   MapPin, 
   Phone, 
   Fingerprint,
-  ArrowLeft,
   Mail,
   ShieldCheck,
-  Calendar,
-  Zap
+  Calendar
 } from "lucide-react";
 import { useSearchParams, useRouter } from "next/navigation";
 import { format } from "date-fns";
-import { cn } from "@/lib/utils";
 
 interface UserProfile {
   id: string;
@@ -143,20 +140,6 @@ function UserManagementContent() {
           <p className="text-muted-foreground text-lg font-medium">Platform-wide profile management and deep audit logs.</p>
         </div>
         <div className="flex items-center gap-3">
-          {(foundUser || searchTerm) && (
-            <Button 
-              variant="outline" 
-              size="sm" 
-              onClick={() => { 
-                setFoundUser(null); 
-                setSearchTerm(""); 
-                router.push('/admin/users'); 
-              }} 
-              className="rounded-xl shadow-sm h-11 px-6 border-slate-200"
-            >
-              <ArrowLeft className="mr-2 h-4 w-4" /> Clear
-            </Button>
-          )}
           <div className="flex gap-2 min-w-[300px] md:min-w-[400px]">
             <div className="relative flex-1">
               <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
@@ -168,7 +151,7 @@ function UserManagementContent() {
                 onKeyDown={(e) => e.key === 'Enter' && handleSearch()} 
               />
             </div>
-            <Button onClick={() => handleSearch()} disabled={loading} size="lg" className="h-11 px-8 rounded-xl shadow-lg shadow-brand-red/20 bg-brand-red hover:bg-brand-red/90 text-white">
+            <Button onClick={() => handleSearch()} disabled={loading} size="lg" className="h-11 px-8 rounded-xl shadow-lg shadow-brand-red/20 bg-brand-red hover:bg-brand-red/90 text-white font-bold uppercase tracking-widest text-[10px]">
               {loading ? <Loader2 className="h-4 w-4 animate-spin" /> : "Inspect"}
             </Button>
           </div>
