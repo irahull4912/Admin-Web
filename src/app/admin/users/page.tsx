@@ -1,7 +1,7 @@
 "use client";
 
-import { useState, useEffect, useCallback, Suspense } from "react";
-import { collection, query, where, getDocs, limit, Timestamp, orderBy, onSnapshot } from "firebase/firestore";
+import { useState, useEffect, useCallback, Suspense, useMemo } from "react";
+import { collection, query, orderBy, onSnapshot } from "firebase/firestore";
 import { db } from "@/lib/firebase";
 import { useUser } from "@/firebase";
 import { Input } from "@/components/ui/input";
@@ -25,10 +25,12 @@ import {
   Fingerprint,
   Mail,
   ShieldCheck,
-  Calendar
+  Calendar,
+  ArrowLeft
 } from "lucide-react";
 import { useSearchParams, useRouter } from "next/navigation";
 import { format } from "date-fns";
+import { Timestamp } from "firebase/firestore";
 
 interface UserProfile {
   id: string;
@@ -51,7 +53,6 @@ function UserManagementContent() {
   const [foundUser, setFoundUser] = useState<UserProfile | null>(null);
   const [loading, setLoading] = useState(true);
   const searchParams = useSearchParams();
-  const router = useRouter();
 
   // Fetch all users for the directory view
   useEffect(() => {
@@ -73,47 +74,24 @@ function UserManagementContent() {
     return () => unsubscribe();
   }, [user]);
 
-  const handleSearch = useCallback(async (customTerm?: string) => {
-    const term = customTerm || searchTerm;
-    if (!term || !user) {
-      setFoundUser(null);
-      return;
-    }
-    
-    setLoading(true);
-    setFoundUser(null);
-
-    try {
-      const usersRef = collection(db, "users");
-      // Search by email
-      let qUser = query(usersRef, where("email", "==", term), limit(1));
-      let snapshot = await getDocs(qUser);
-
-      // Search by ID if email yields nothing
-      if (snapshot.empty) {
-        qUser = query(usersRef, where("id", "==", term), limit(1));
-        snapshot = await getDocs(qUser);
-      }
-
-      if (!snapshot.empty) {
-        const doc = snapshot.docs[0];
-        const userData = { id: doc.id, ...doc.data() } as UserProfile;
-        setFoundUser(userData);
-      }
-    } catch (error) {
-      console.error("Search error:", error);
-    } finally {
-      setLoading(false);
-    }
-  }, [searchTerm, user]);
+  // Client-side filtering for partial matches
+  const filteredUsers = useMemo(() => {
+    if (!searchTerm) return allUsers;
+    const term = searchTerm.toLowerCase();
+    return allUsers.filter(u => 
+      u.email?.toLowerCase().includes(term) ||
+      u.id?.toLowerCase().includes(term) ||
+      u.displayName?.toLowerCase().includes(term) ||
+      u.name?.toLowerCase().includes(term)
+    );
+  }, [allUsers, searchTerm]);
 
   useEffect(() => {
     const urlSearch = searchParams.get("search");
-    if (urlSearch && user) {
+    if (urlSearch) {
       setSearchTerm(urlSearch);
-      handleSearch(urlSearch);
     }
-  }, [searchParams, handleSearch, user]);
+  }, [searchParams]);
 
   const formatDate = (date: any) => {
     if (!date) return "N/A";
@@ -136,26 +114,40 @@ function UserManagementContent() {
     <div className="space-y-8 animate-in fade-in slide-in-from-bottom-4 duration-500">
       <div className="flex flex-col md:flex-row md:items-end justify-between gap-6">
         <div className="space-y-1">
-          <h1 className="text-3xl font-headline font-bold text-foreground tracking-tight">Identity Center</h1>
-          <p className="text-muted-foreground text-lg font-medium">Platform-wide profile management and deep audit logs.</p>
-        </div>
-        <div className="flex items-center gap-3">
-          <div className="flex gap-2 min-w-[300px] md:min-w-[400px]">
-            <div className="relative flex-1">
-              <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-              <Input 
-                placeholder="Lookup by email or UID..." 
-                className="pl-10 h-11 bg-white border-slate-200 rounded-xl shadow-sm focus-visible:ring-brand-red" 
-                value={searchTerm} 
-                onChange={(e) => setSearchTerm(e.target.value)} 
-                onKeyDown={(e) => e.key === 'Enter' && handleSearch()} 
-              />
-            </div>
-            <Button onClick={() => handleSearch()} disabled={loading} size="lg" className="h-11 px-8 rounded-xl shadow-lg shadow-brand-red/20 bg-brand-red hover:bg-brand-red/90 text-white font-bold uppercase tracking-widest text-[10px]">
-              {loading ? <Loader2 className="h-4 w-4 animate-spin" /> : "Inspect"}
-            </Button>
+          <div className="flex items-center gap-2">
+            {foundUser && (
+              <Button 
+                variant="ghost" 
+                size="icon" 
+                onClick={() => setFoundUser(null)}
+                className="rounded-full h-8 w-8 mr-2"
+              >
+                <ArrowLeft className="h-4 w-4" />
+              </Button>
+            )}
+            <h1 className="text-3xl font-headline font-bold text-foreground tracking-tight">
+              {foundUser ? "User Inspection" : "Identity Center"}
+            </h1>
           </div>
+          <p className="text-muted-foreground text-lg font-medium">
+            {foundUser ? `Analyzing records for ${foundUser.email}` : "Platform-wide profile management and deep audit logs."}
+          </p>
         </div>
+        {!foundUser && (
+          <div className="flex items-center gap-3">
+            <div className="flex gap-2 min-w-[300px] md:min-w-[400px]">
+              <div className="relative flex-1">
+                <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+                <Input 
+                  placeholder="Partial search by email, name or UID..." 
+                  className="pl-10 h-11 bg-white border-slate-200 rounded-xl shadow-sm focus-visible:ring-brand-red" 
+                  value={searchTerm} 
+                  onChange={(e) => setSearchTerm(e.target.value)} 
+                />
+              </div>
+            </div>
+          </div>
+        )}
       </div>
 
       {loading && !allUsers.length ? (
@@ -277,15 +269,19 @@ function UserManagementContent() {
                 </TableRow>
               </TableHeader>
               <TableBody>
-                {allUsers.length === 0 ? (
+                {filteredUsers.length === 0 ? (
                   <TableRow>
                     <TableCell colSpan={5} className="h-48 text-center text-muted-foreground italic font-medium">
-                      No users found in the identity directory.
+                      No users found matching your criteria.
                     </TableCell>
                   </TableRow>
                 ) : (
-                  allUsers.map((u) => (
-                    <TableRow key={u.id} className="hover:bg-muted/10 transition-colors group cursor-pointer" onClick={() => { setSearchTerm(u.email); handleSearch(u.email); }}>
+                  filteredUsers.map((u) => (
+                    <TableRow 
+                      key={u.id} 
+                      className="hover:bg-muted/10 transition-colors group cursor-pointer" 
+                      onClick={() => setFoundUser(u)}
+                    >
                       <TableCell className="pl-8">
                         <div className="flex flex-col">
                           <span className="font-bold text-slate-900 group-hover:text-brand-red transition-colors">{u.displayName || u.name || "Anonymous"}</span>
@@ -317,14 +313,6 @@ function UserManagementContent() {
             </Table>
           </CardContent>
         </Card>
-      )}
-
-      {!foundUser && !loading && searchTerm && allUsers.length === 0 && (
-        <div className="flex flex-col items-center justify-center py-32 bg-white rounded-3xl border border-dashed border-slate-200">
-          <div className="h-20 w-20 rounded-3xl bg-slate-50 flex items-center justify-center mb-6"><UserIcon className="h-10 w-10 text-slate-200" /></div>
-          <h3 className="text-xl font-bold text-slate-900">Zero Matches Found</h3>
-          <p className="text-slate-500 max-w-sm text-center mt-2 px-6">The credentials <span className="text-brand-red font-mono">{searchTerm}</span> do not correspond to any registered identities.</p>
-        </div>
       )}
     </div>
   );
