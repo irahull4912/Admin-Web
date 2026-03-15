@@ -1,4 +1,3 @@
-
 "use client";
 
 import { useState } from "react";
@@ -10,6 +9,7 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { ShieldCheck, ArrowLeft, Loader2, Lock } from "lucide-react";
 import Link from "next/link";
+import { useToast } from "@/hooks/use-toast";
 
 const SUPER_ADMIN_UID = '6BXkgq9KkCY8ZPBvSbMV6m5OuAV2';
 
@@ -17,6 +17,7 @@ export default function AdminLoginPage() {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const router = useRouter();
+  const { toast } = useToast();
 
   const handleGoogleLogin = async () => {
     setLoading(true);
@@ -25,24 +26,42 @@ export default function AdminLoginPage() {
       const result = await signInWithPopup(auth, googleProvider);
       const user = result.user;
 
-      // Immediate Admin Verification
+      // 1. Admin Verification Block
       const isSuperAdmin = user.uid === SUPER_ADMIN_UID;
       let isRegisteredAdmin = false;
 
-      if (!isSuperAdmin) {
-        const adminDoc = await getDoc(doc(db, "adminUsers", user.uid));
-        isRegisteredAdmin = adminDoc.exists();
-      }
+      try {
+        if (!isSuperAdmin) {
+          const adminDoc = await getDoc(doc(db, "adminUsers", user.uid));
+          isRegisteredAdmin = adminDoc.exists();
+        }
 
-      if (!isSuperAdmin && !isRegisteredAdmin) {
-        // Access Denied: Sign them back out
+        // 2. Immediate Rejection if not Admin
+        if (!isSuperAdmin && !isRegisteredAdmin) {
+          await signOut(auth);
+          toast({
+            variant: "destructive",
+            title: "Access Denied",
+            description: "You do not have admin privileges.",
+          });
+          setError("Access Denied: Admin privileges required for this portal.");
+          setLoading(false);
+          return;
+        }
+
+        // 3. Success
+        router.push("/admin/dashboard");
+      } catch (dbErr: any) {
+        // Handle Firestore permission denied or network errors
         await signOut(auth);
-        setError("Access Denied: Admin privileges required for this portal.");
+        toast({
+          variant: "destructive",
+          title: "Verification Failed",
+          description: "Database access restricted or offline.",
+        });
+        setError("Security rejection: Verification failed.");
         setLoading(false);
-        return;
       }
-
-      router.push("/admin/dashboard");
     } catch (err: any) {
       setError(err.message || "Failed to sign in. Please try again.");
       setLoading(false);

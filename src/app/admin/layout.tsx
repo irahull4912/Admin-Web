@@ -1,4 +1,3 @@
-
 "use client";
 
 import { useEffect, useState } from "react";
@@ -9,6 +8,7 @@ import { auth, db } from "@/lib/firebase";
 import { AdminSidebar } from "./components/sidebar";
 import { AdminTopNav } from "./components/top-nav";
 import { Loader2 } from "lucide-react";
+import { useToast } from "@/hooks/use-toast";
 
 const SUPER_ADMIN_UID = '6BXkgq9KkCY8ZPBvSbMV6m5OuAV2';
 
@@ -16,10 +16,11 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
   const [loading, setLoading] = useState(true);
   const router = useRouter();
   const pathname = usePathname();
+  const { toast } = useToast();
 
   useEffect(() => {
     const unsubscribe = onAuthStateChanged(auth, async (user) => {
-      // If no user and not on login page, go to login
+      // 1. No User: Direct to login unless already there
       if (!user) {
         if (pathname !== "/admin/login") {
           router.push("/admin/login");
@@ -28,30 +29,43 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
         return;
       }
 
-      // User is logged in, verify admin status
+      // 2. Verification Block
       try {
-        const isAdmin = user.uid === SUPER_ADMIN_UID;
+        const isSuperAdmin = user.uid === SUPER_ADMIN_UID;
         let isRegisteredAdmin = false;
 
-        if (!isAdmin) {
+        // Attempt database verification
+        if (!isSuperAdmin) {
           const adminDoc = await getDoc(doc(db, "adminUsers", user.uid));
           isRegisteredAdmin = adminDoc.exists();
         }
 
-        if (!isAdmin && !isRegisteredAdmin) {
-          // NOT AN ADMIN: Sign out and eject
+        // 3. Authorization Check
+        if (!isSuperAdmin && !isRegisteredAdmin) {
+          // NOT AUTHORIZED: Sign out and eject immediately
           await signOut(auth);
+          toast({
+            variant: "destructive",
+            title: "Access Denied",
+            description: "You do not have admin privileges for this portal.",
+          });
           router.push("/");
           return;
         }
 
-        // IS AN ADMIN: Allow if on protected page, redirect if on login
+        // 4. Final Routing: Redirect away from login if authorized
         if (pathname === "/admin/login") {
           router.push("/admin/dashboard");
         }
-      } catch (error) {
-        console.error("Auth Guard Error:", error);
+      } catch (error: any) {
+        // Handle database or network errors during verification
+        console.error("Route Guard Exception:", error);
         await signOut(auth);
+        toast({
+          variant: "destructive",
+          title: "Security Violation",
+          description: "An error occurred during verification. Access restricted.",
+        });
         router.push("/admin/login");
       } finally {
         setLoading(false);
@@ -59,7 +73,7 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
     });
 
     return () => unsubscribe();
-  }, [pathname, router]);
+  }, [pathname, router, toast]);
 
   if (loading) {
     return (
@@ -76,6 +90,7 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
     );
   }
 
+  // Render children directly for login page to avoid sidebar/nav
   if (pathname === "/admin/login") {
     return <>{children}</>;
   }
