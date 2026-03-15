@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState, use } from "react";
+import { useEffect, useState, useMemo, use } from "react";
 import { collection, query, where, getDocs, onSnapshot, Timestamp, collectionGroup } from "firebase/firestore";
 import { db } from "@/lib/firebase";
 import { 
@@ -21,9 +21,11 @@ import {
   Calendar, 
   Activity, 
   IndianRupee,
-  TrendingUp
+  TrendingUp,
+  Search
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
 import Link from "next/link";
 import { format } from "date-fns";
 
@@ -52,6 +54,7 @@ export default function ProductAuditPage({ params }: { params: Promise<{ product
   const [product, setProduct] = useState<Product | null>(null);
   const [buyerEmails, setBuyerEmails] = useState<Record<string, string>>({});
   const [loading, setLoading] = useState(true);
+  const [searchTerm, setSearchTerm] = useState("");
 
   useEffect(() => {
     async function fetchProductAndPings() {
@@ -67,10 +70,8 @@ export default function ProductAuditPage({ params }: { params: Promise<{ product
           setProduct(productData);
         }
 
-        // Fetch Pings. We check for productId (singular) and also array-contains if it's multiple
+        // Fetch Pings
         const pingsRef = collection(db, "pings");
-        
-        // Listener for pings associated with this productId
         const q = query(pingsRef);
 
         const unsubscribe = onSnapshot(q, async (snapshot) => {
@@ -78,7 +79,6 @@ export default function ProductAuditPage({ params }: { params: Promise<{ product
             .map(doc => ({ id: doc.id, ...doc.data() } as PingRecord))
             .filter(p => p.productId === productId || p.items?.some(i => i.productId === productId));
           
-          // Perform client-side sort
           const sortedPings = pingData.sort((a, b) => {
             const timeA = a.createdAt instanceof Timestamp ? a.createdAt.toMillis() : new Date(a.createdAt).getTime();
             const timeB = b.createdAt instanceof Timestamp ? b.createdAt.toMillis() : new Date(b.createdAt).getTime();
@@ -87,7 +87,6 @@ export default function ProductAuditPage({ params }: { params: Promise<{ product
 
           setPings(sortedPings);
 
-          // Resolve buyer emails
           const uniqueBuyerIds = Array.from(new Set(sortedPings.map(p => p.buyerId)));
           if (uniqueBuyerIds.length > 0) {
             const usersSnap = await getDocs(collection(db, "users"));
@@ -115,6 +114,17 @@ export default function ProductAuditPage({ params }: { params: Promise<{ product
     fetchProductAndPings();
   }, [productId]);
 
+  const filteredPings = useMemo(() => {
+    if (!searchTerm) return pings;
+    const term = searchTerm.toLowerCase();
+    return pings.filter(ping => {
+      const email = buyerEmails[ping.buyerId]?.toLowerCase() || "";
+      const status = ping.status.toLowerCase();
+      const id = ping.id.toLowerCase();
+      return email.includes(term) || status.includes(term) || id.includes(term);
+    });
+  }, [pings, searchTerm, buyerEmails]);
+
   const getStatusBadge = (status: string) => {
     const s = (status || "").toLowerCase().trim();
     if (['successful', 'completed', 'success'].includes(s)) return <Badge className="bg-emerald-500/10 text-emerald-500 border-emerald-500/20 uppercase font-bold text-[10px]">Successful</Badge>;
@@ -123,7 +133,6 @@ export default function ProductAuditPage({ params }: { params: Promise<{ product
     return <Badge variant="outline" className="uppercase font-bold text-[10px]">{status}</Badge>;
   };
 
-  // Only sum successful pings for the Total Yield
   const totalYield = pings.reduce((acc, p) => {
     const s = (p.status || "").toLowerCase().trim();
     if (['successful', 'completed', 'success'].includes(s)) {
@@ -144,7 +153,7 @@ export default function ProductAuditPage({ params }: { params: Promise<{ product
 
   return (
     <div className="space-y-8 animate-in fade-in slide-in-from-bottom-4 duration-500">
-      <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
+      <div className="flex flex-col md:flex-row md:items-end justify-between gap-6">
         <div>
           <div className="flex items-center gap-2 mb-2">
             <Button variant="ghost" size="icon" asChild className="rounded-full">
@@ -153,6 +162,17 @@ export default function ProductAuditPage({ params }: { params: Promise<{ product
             <h1 className="text-3xl font-headline font-bold text-foreground tracking-tight">Audit Ledger</h1>
           </div>
           <p className="text-muted-foreground text-lg">Detailed transaction history for <span className="text-primary font-bold">{product?.name || productId}</span></p>
+        </div>
+        <div className="flex items-center gap-3">
+          <div className="relative w-64 md:w-80">
+            <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+            <Input 
+              placeholder="Filter by buyer email or status..." 
+              className="pl-9 h-11 bg-white border-slate-200 rounded-xl shadow-sm focus-visible:ring-brand-red"
+              value={searchTerm}
+              onChange={(e) => setSearchTerm(e.target.value)}
+            />
+          </div>
         </div>
       </div>
 
@@ -207,7 +227,7 @@ export default function ProductAuditPage({ params }: { params: Promise<{ product
             </div>
             <div>
               <CardTitle className="text-xl">Historical Performance Ledger</CardTitle>
-              <CardDescription className="text-[10px] uppercase font-bold tracking-widest text-muted-foreground">Resolved audit trail mapping buyer identities to actual yields.</CardDescription>
+              <CardDescription className="text-[10px] uppercase font-bold tracking-widest text-muted-foreground">Resolved audit trail mapping buyer identities to actual yields ({filteredPings.length} results).</CardDescription>
             </div>
           </div>
         </CardHeader>
@@ -222,14 +242,14 @@ export default function ProductAuditPage({ params }: { params: Promise<{ product
               </TableRow>
             </TableHeader>
             <TableBody>
-              {pings.length === 0 ? (
+              {filteredPings.length === 0 ? (
                 <TableRow>
                   <TableCell colSpan={4} className="h-48 text-center text-muted-foreground italic font-medium">
-                    No transaction pings found for this specific asset.
+                    {searchTerm ? "No transactions matching your search." : "No transaction pings found for this specific asset."}
                   </TableCell>
                 </TableRow>
               ) : (
-                pings.map((ping) => {
+                filteredPings.map((ping) => {
                   const displayPrice = ping.amount || ping.items?.find(i => i.productId === productId)?.price || product?.sellingPrice || product?.price || 0;
                   
                   return (

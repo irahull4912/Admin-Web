@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useState, useMemo } from "react";
 import { collection, query, where, onSnapshot, doc, Timestamp } from "firebase/firestore";
 import { db } from "@/lib/firebase";
 import { updateDocumentNonBlocking } from "@/firebase/non-blocking-updates";
@@ -31,20 +31,15 @@ import {
   Loader2, 
   MapPin, 
   Phone, 
-  Info,
   ArrowLeft,
   User,
   Mail,
-  Clock,
-  Star,
-  Zap,
+  Search,
   Tag,
-  Calendar,
-  Layers,
   ShieldCheck,
-  Building2,
   FileText
 } from "lucide-react";
+import { Input } from "@/components/ui/input";
 import Image from "next/image";
 import Link from "next/link";
 import { ScrollArea } from "@/components/ui/scroll-area";
@@ -80,6 +75,7 @@ interface ShopProfile {
 export default function PendingShopsPage() {
   const [shops, setShops] = useState<ShopProfile[]>([]);
   const [loading, setLoading] = useState(true);
+  const [searchTerm, setSearchTerm] = useState("");
   const [selectedShop, setSelectedShop] = useState<ShopProfile | null>(null);
 
   useEffect(() => {
@@ -94,6 +90,17 @@ export default function PendingShopsPage() {
     }, () => setLoading(false));
     return () => unsubscribe();
   }, []);
+
+  const filteredShops = useMemo(() => {
+    if (!searchTerm) return shops;
+    const term = searchTerm.toLowerCase();
+    return shops.filter(shop => 
+      shop.name?.toLowerCase().includes(term) ||
+      shop.ownerName?.toLowerCase().includes(term) ||
+      shop.contactEmail?.toLowerCase().includes(term) ||
+      shop.id?.toLowerCase().includes(term)
+    );
+  }, [shops, searchTerm]);
 
   const handleUpdateStatus = (shopId: string, newStatus: string) => {
     const docRef = doc(db, "shops", shopId);
@@ -121,13 +128,26 @@ export default function PendingShopsPage() {
 
   return (
     <div className="space-y-8 animate-in fade-in slide-in-from-bottom-4 duration-500">
-      <div className="flex items-center gap-4">
-        <Button variant="ghost" size="icon" asChild className="rounded-full h-12 w-12 hover:bg-slate-200/50">
-          <Link href="/admin/dashboard"><ArrowLeft className="h-6 w-6" /></Link>
-        </Button>
-        <div className="space-y-1">
-          <h1 className="text-3xl font-headline font-black text-foreground tracking-tight">Shop Approvals</h1>
-          <p className="text-muted-foreground text-lg font-medium">Detailed merchant dossiers for platform quality inspection.</p>
+      <div className="flex flex-col md:flex-row md:items-end justify-between gap-6">
+        <div className="flex items-center gap-4">
+          <Button variant="ghost" size="icon" asChild className="rounded-full h-12 w-12 hover:bg-slate-200/50">
+            <Link href="/admin/dashboard"><ArrowLeft className="h-6 w-6" /></Link>
+          </Button>
+          <div className="space-y-1">
+            <h1 className="text-3xl font-headline font-black text-foreground tracking-tight">Shop Approvals</h1>
+            <p className="text-muted-foreground text-lg font-medium">Detailed merchant dossiers for platform quality inspection.</p>
+          </div>
+        </div>
+        <div className="flex items-center gap-3">
+          <div className="relative w-64 md:w-80">
+            <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+            <Input 
+              placeholder="Search pending applications..." 
+              className="pl-9 h-11 bg-white border-slate-200 rounded-xl shadow-sm focus-visible:ring-brand-red"
+              value={searchTerm}
+              onChange={(e) => setSearchTerm(e.target.value)}
+            />
+          </div>
         </div>
       </div>
 
@@ -143,7 +163,7 @@ export default function PendingShopsPage() {
                 <CardDescription>Review new applications for operational compliance.</CardDescription>
               </div>
             </div>
-            <Badge className="bg-primary px-4 py-1.5 rounded-full text-white font-bold tracking-wider">{shops.length} PENDING APPLICATIONS</Badge>
+            <Badge className="bg-primary px-4 py-1.5 rounded-full text-white font-bold tracking-wider">{filteredShops.length} MATCHING APPLICATIONS</Badge>
           </div>
         </CardHeader>
         <CardContent className="p-0">
@@ -157,7 +177,7 @@ export default function PendingShopsPage() {
               </TableRow>
             </TableHeader>
             <TableBody>
-              {shops.length === 0 ? (
+              {filteredShops.length === 0 ? (
                 <TableRow>
                   <TableCell colSpan={4} className="h-96 text-center">
                     <div className="flex flex-col items-center justify-center gap-4 text-muted-foreground opacity-50">
@@ -167,7 +187,7 @@ export default function PendingShopsPage() {
                   </TableCell>
                 </TableRow>
               ) : (
-                shops.map((shop) => (
+                filteredShops.map((shop) => (
                   <TableRow key={shop.id} className="hover:bg-muted/10 transition-colors group">
                     <TableCell className="pl-8">
                       <div className="flex flex-col">
@@ -246,24 +266,6 @@ export default function PendingShopsPage() {
                                       </div>
                                     </div>
                                   </section>
-
-                                  <section className="space-y-4">
-                                    <h4 className="text-[10px] font-bold text-slate-400 uppercase tracking-widest flex items-center gap-2 px-1"><Zap className="h-3.5 w-3.5 text-emerald-500" /> Predicted Metrics</h4>
-                                    <div className="grid grid-cols-2 gap-4">
-                                      <div className="bg-emerald-50/50 p-6 rounded-2xl border border-emerald-100 text-center shadow-sm">
-                                        <p className="text-[9px] font-black text-emerald-600 uppercase mb-2 tracking-widest">Acceptance Propensity</p>
-                                        <p className="text-3xl font-black text-emerald-700">{shop.pingAcceptanceRate ? `${(shop.pingAcceptanceRate * 100).toFixed(1)}%` : "100%"}</p>
-                                      </div>
-                                      <div className="bg-amber-50/50 p-6 rounded-2xl border border-amber-100 text-center shadow-sm">
-                                        <p className="text-[9px] font-black text-amber-600 uppercase mb-2 tracking-widest">Baseline Rating</p>
-                                        <div className="flex items-center justify-center gap-1.5 text-3xl font-black text-amber-700">
-                                          <Star className="h-6 w-6 fill-amber-500 text-amber-500" />
-                                          {shop.rating?.toFixed(1) || "0.0"}
-                                        </div>
-                                        <p className="text-[8px] text-amber-600 uppercase font-black mt-1">({shop.reviewCount || 0} reviews)</p>
-                                      </div>
-                                    </div>
-                                  </section>
                                 </div>
 
                                 <div className="space-y-8">
@@ -278,29 +280,6 @@ export default function PendingShopsPage() {
                                       <div className="grid grid-cols-2 gap-4">
                                         <div><p className="text-[10px] text-muted-foreground uppercase font-black mb-1 tracking-widest">City / Township</p><p className="font-black text-sm text-slate-900">{shop.city}</p></div>
                                         <div><p className="text-[10px] text-muted-foreground uppercase font-black mb-1 tracking-widest">State / Province</p><p className="font-black text-sm text-slate-900">{shop.state}</p></div>
-                                      </div>
-                                      <div className="pt-4 border-t border-slate-200/50 grid grid-cols-2 gap-4 items-end">
-                                        <div><p className="text-[10px] text-muted-foreground uppercase font-black mb-1 tracking-widest">Sovereign State</p><p className="font-black text-[10px] uppercase text-slate-500 tracking-widest">{shop.country || "INDIA"}</p></div>
-                                        <div className="text-right flex items-center justify-end gap-3 text-primary">
-                                          <div className="text-right">
-                                            <p className="text-[9px] font-mono leading-none opacity-40 mb-1">COORD: LAT {shop.latitude?.toFixed(5)}</p>
-                                            <p className="text-[9px] font-mono leading-none opacity-40">COORD: LNG {shop.longitude?.toFixed(5)}</p>
-                                          </div>
-                                          <MapPin className="h-5 w-5" />
-                                        </div>
-                                      </div>
-                                    </div>
-                                  </section>
-
-                                  <section className="space-y-4">
-                                    <h4 className="text-[10px] font-bold text-slate-400 uppercase tracking-widest flex items-center gap-2 px-1"><Clock className="h-3.5 w-3.5 text-blue-500" /> Operational Context</h4>
-                                    <div className="grid gap-5 bg-slate-50/50 p-6 rounded-2xl border border-slate-100 shadow-sm">
-                                      <div><p className="text-[10px] text-muted-foreground uppercase font-black mb-1 tracking-widest">Standard Operational Hours</p><p className="font-black text-xs text-slate-700 whitespace-pre-line leading-relaxed">{shop.operationalHours || "Monday - Saturday: 09:00 - 21:00\nSunday: Automated Operations Only"}</p></div>
-                                      <div className="pt-4 border-t border-slate-200/50">
-                                        <p className="text-[10px] text-muted-foreground uppercase font-black mb-3 tracking-widest">Merchant Service Policy</p>
-                                        <div className="text-xs italic text-slate-500 leading-relaxed font-bold bg-white/60 p-4 rounded-2xl border border-dashed border-slate-200 shadow-inner">
-                                          {shop.storePolicy || "Merchant has not defined a specialized service policy. Platform standard terms of use and service agreements are currently defaulted for all generated interactions."}
-                                        </div>
                                       </div>
                                     </div>
                                   </section>

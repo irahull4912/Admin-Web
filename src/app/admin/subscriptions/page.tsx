@@ -1,7 +1,7 @@
 "use client";
 
-import { useEffect, useState } from "react";
-import { collectionGroup, query, where, onSnapshot } from "firebase/firestore";
+import { useEffect, useState, useMemo } from "react";
+import { collectionGroup, query, onSnapshot } from "firebase/firestore";
 import { db } from "@/lib/firebase";
 import { 
   Table, 
@@ -13,7 +13,11 @@ import {
 } from "@/components/ui/table";
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
-import { CreditCard, Clock, AlertTriangle, Loader2 } from "lucide-react";
+import { CreditCard, Clock, AlertTriangle, Loader2, Search, ArrowLeft, Filter } from "lucide-react";
+import { Input } from "@/components/ui/input";
+import { Button } from "@/components/ui/button";
+import Link from "next/link";
+import { cn } from "@/lib/utils";
 
 interface Subscription {
   id: string;
@@ -30,6 +34,7 @@ interface Subscription {
 export default function SubscriptionsPage() {
   const [subscriptions, setSubscriptions] = useState<Subscription[]>([]);
   const [loading, setLoading] = useState(true);
+  const [searchTerm, setSearchTerm] = useState("");
 
   useEffect(() => {
     const q = query(collectionGroup(db, "subscriptions"));
@@ -48,6 +53,17 @@ export default function SubscriptionsPage() {
     return () => unsubscribe();
   }, []);
 
+  const filteredSubscriptions = useMemo(() => {
+    if (!searchTerm) return subscriptions;
+    const term = searchTerm.toLowerCase();
+    return subscriptions.filter(sub => 
+      sub.planName.toLowerCase().includes(term) ||
+      sub.subscriberType.toLowerCase().includes(term) ||
+      sub.status.toLowerCase().includes(term) ||
+      sub.id.toLowerCase().includes(term)
+    );
+  }, [subscriptions, searchTerm]);
+
   const getEndingSoonCount = () => {
     const now = new Date();
     const nextWeek = new Date();
@@ -63,17 +79,35 @@ export default function SubscriptionsPage() {
 
   if (loading) {
     return (
-      <div className="flex h-96 items-center justify-center">
-        <Loader2 className="h-8 w-8 animate-spin text-primary" />
+      <div className="flex h-[60vh] items-center justify-center">
+        <Loader2 className="h-10 w-10 animate-spin text-primary" />
       </div>
     );
   }
 
   return (
     <div className="space-y-8 animate-in fade-in slide-in-from-bottom-4 duration-500">
-      <div className="space-y-1">
-        <h1 className="text-3xl font-headline font-bold text-foreground tracking-tight">Subscription Tracking</h1>
-        <p className="text-muted-foreground text-lg font-medium">Monitor active plans, trials, and upcoming renewals.</p>
+      <div className="flex flex-col md:flex-row md:items-end justify-between gap-6">
+        <div className="space-y-1">
+          <div className="flex items-center gap-2">
+            <Link href="/admin/dashboard" className="text-muted-foreground hover:text-primary transition-colors">
+              <ArrowLeft className="h-4 w-4" />
+            </Link>
+            <h1 className="text-3xl font-headline font-bold text-foreground tracking-tight">Subscription Tracking</h1>
+          </div>
+          <p className="text-muted-foreground text-lg font-medium">Monitor active plans, trials, and upcoming renewals.</p>
+        </div>
+        <div className="flex items-center gap-3">
+          <div className="relative w-64 md:w-80">
+            <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+            <Input 
+              placeholder="Search by plan, type or status..." 
+              className="pl-9 h-11 bg-white border-slate-200 rounded-xl shadow-sm focus-visible:ring-brand-red"
+              value={searchTerm}
+              onChange={(e) => setSearchTerm(e.target.value)}
+            />
+          </div>
+        </div>
       </div>
 
       <div className="grid gap-6 sm:grid-cols-2 lg:grid-cols-3">
@@ -109,13 +143,13 @@ export default function SubscriptionsPage() {
         </Card>
       </div>
 
-      <Card className="border-border bg-card/40 backdrop-blur">
+      <Card className="border-border bg-card/40 backdrop-blur overflow-hidden">
         <CardHeader>
           <div className="flex items-center gap-2">
             <CreditCard className="h-5 w-5 text-primary" />
             <CardTitle>Master Subscriptions List</CardTitle>
           </div>
-          <CardDescription>Unified view of all platform revenue streams.</CardDescription>
+          <CardDescription>Unified view of all platform revenue streams ({filteredSubscriptions.length} results).</CardDescription>
         </CardHeader>
         <CardContent className="p-0">
           <Table>
@@ -129,14 +163,14 @@ export default function SubscriptionsPage() {
               </TableRow>
             </TableHeader>
             <TableBody>
-              {subscriptions.length === 0 ? (
+              {filteredSubscriptions.length === 0 ? (
                 <TableRow>
-                  <TableCell colSpan={5} className="text-center py-8 text-muted-foreground">
-                    No subscriptions tracked yet.
+                  <TableCell colSpan={5} className="text-center py-12 text-muted-foreground italic">
+                    {searchTerm ? "No subscriptions matching your search." : "No subscriptions tracked yet."}
                   </TableCell>
                 </TableRow>
               ) : (
-                subscriptions.map((sub) => (
+                filteredSubscriptions.map((sub) => (
                   <TableRow key={sub.id}>
                     <TableCell className="pl-6">
                       <Badge variant="outline" className="font-bold tracking-widest uppercase text-[10px]">{sub.subscriberType}</Badge>
