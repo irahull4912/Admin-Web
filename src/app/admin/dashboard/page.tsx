@@ -49,7 +49,7 @@ import {
   DialogTrigger 
 } from "@/components/ui/dialog";
 import Image from "next/image";
-import Link from "next/link";
+import Link from "next/Link";
 
 interface PendingShop {
   id: string;
@@ -80,10 +80,8 @@ export default function AdminDashboardPage() {
   });
 
   useEffect(() => {
-    // Early Return: Do not execute database queries if unauthorized or still loading auth
     if (!user || isUserLoading) return;
 
-    // Real-time listener for pending shops
     const shopsQuery = query(collection(db, "shops"), where("status", "==", "pending"));
     const unsubscribeShops = onSnapshot(shopsQuery, (snapshot) => {
       const shops = snapshot.docs.map(doc => ({
@@ -124,7 +122,7 @@ export default function AdminDashboardPage() {
         setTotalRevenue(revenue);
         setPingStats(stats);
       } catch (error) {
-        // Silently caught; AdminLayout handles high-level redirection
+        // Silently caught
       } finally {
         setLoading(false);
       }
@@ -134,7 +132,6 @@ export default function AdminDashboardPage() {
     return () => unsubscribeShops();
   }, [user, isUserLoading]);
 
-  // Strict UI Check: Prevent flashing unauthorized content
   if (isUserLoading || !user) {
     return null;
   }
@@ -147,11 +144,9 @@ export default function AdminDashboardPage() {
 
   return (
     <div className="space-y-8 animate-in fade-in slide-in-from-bottom-4 duration-500">
-      <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
-        <div>
-          <h1 className="text-3xl font-headline font-bold text-foreground tracking-tight">Admin Dashboard</h1>
-          <p className="text-muted-foreground mt-1 text-lg font-medium">Comprehensive platform metrics and real-time performance tracking.</p>
-        </div>
+      <div className="space-y-1">
+        <h1 className="text-3xl font-headline font-bold text-foreground tracking-tight">Admin Dashboard</h1>
+        <p className="text-muted-foreground text-lg font-medium">Comprehensive platform metrics and real-time performance tracking.</p>
       </div>
 
       <div className="grid gap-6 sm:grid-cols-2 lg:grid-cols-4">
@@ -193,9 +188,9 @@ export default function AdminDashboardPage() {
           <Table>
             <TableHeader className="bg-muted/30">
               <TableRow>
-                <TableHead>Shop Name</TableHead>
-                <TableHead>Owner Name</TableHead>
-                <TableHead className="text-right">Action</TableHead>
+                <TableHead className="pl-6 font-bold uppercase text-[10px] tracking-widest">Shop Name</TableHead>
+                <TableHead className="font-bold uppercase text-[10px] tracking-widest">Owner Name</TableHead>
+                <TableHead className="text-right pr-6 font-bold uppercase text-[10px] tracking-widest">Action</TableHead>
               </TableRow>
             </TableHeader>
             <TableBody>
@@ -204,9 +199,9 @@ export default function AdminDashboardPage() {
               ) : (
                 pendingShops.slice(0, 5).map((shop) => (
                   <TableRow key={shop.id} className="hover:bg-muted/20 transition-colors">
-                    <TableCell className="font-semibold">{shop.name}</TableCell>
+                    <TableCell className="pl-6 font-semibold">{shop.name}</TableCell>
                     <TableCell>{shop.ownerName || "N/A"}</TableCell>
-                    <TableCell className="text-right">
+                    <TableCell className="text-right pr-6">
                       <Dialog>
                         <DialogTrigger asChild><Button variant="ghost" size="sm" onClick={() => setSelectedShop(shop)} className="text-brand-blue hover:text-brand-blue hover:bg-brand-blue/10"><Info className="h-4 w-4 mr-1.5" />Details</Button></DialogTrigger>
                         <DialogContent className="sm:max-w-[500px]">

@@ -157,14 +157,14 @@ export default function PingsManagementPage() {
   return (
     <div className="space-y-8 animate-in fade-in slide-in-from-bottom-4 duration-500">
       <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
-        <div>
-          <div className="flex items-center gap-2 mb-2">
+        <div className="space-y-1">
+          <div className="flex items-center gap-2">
             <Link href="/admin/dashboard" className="text-muted-foreground hover:text-primary transition-colors">
               <ArrowLeft className="h-4 w-4" />
             </Link>
             <h1 className="text-3xl font-headline font-bold text-foreground tracking-tight">Ping Transactions</h1>
           </div>
-          <p className="text-muted-foreground text-lg">Detailed audit log resolving buyer email, shop, and product identities.</p>
+          <p className="text-muted-foreground text-lg font-medium">Detailed audit log resolving buyer email, shop, and product identities.</p>
         </div>
         <div className="flex items-center gap-3">
           <div className="relative w-64">
@@ -229,12 +229,12 @@ export default function PingsManagementPage() {
           <Table>
             <TableHeader className="bg-muted/30">
               <TableRow>
-                <TableHead className="w-[120px]">Date</TableHead>
-                <TableHead>Buyer (Email)</TableHead>
-                <TableHead>Shop</TableHead>
-                <TableHead>Product Details</TableHead>
-                <TableHead>Price</TableHead>
-                <TableHead className="text-right">Status</TableHead>
+                <TableHead className="w-[120px] font-bold uppercase text-[10px] tracking-widest py-4 pl-6">Date</TableHead>
+                <TableHead className="font-bold uppercase text-[10px] tracking-widest py-4">Buyer (Email)</TableHead>
+                <TableHead className="font-bold uppercase text-[10px] tracking-widest py-4">Shop</TableHead>
+                <TableHead className="font-bold uppercase text-[10px] tracking-widest py-4">Product Details</TableHead>
+                <TableHead className="font-bold uppercase text-[10px] tracking-widest py-4">Price</TableHead>
+                <TableHead className="text-right font-bold uppercase text-[10px] tracking-widest py-4 pr-6">Status</TableHead>
               </TableRow>
             </TableHeader>
             <TableBody>
@@ -256,7 +256,7 @@ export default function PingsManagementPage() {
                   
                   return (
                     <TableRow key={ping.id} className="hover:bg-muted/20 transition-colors">
-                      <TableCell className="text-xs font-medium text-muted-foreground">
+                      <TableCell className="text-xs font-medium text-muted-foreground pl-6">
                         {formatPingDate(ping.createdAt)}
                       </TableCell>
                       <TableCell>
@@ -299,7 +299,7 @@ export default function PingsManagementPage() {
                       <TableCell className="font-bold text-primary">
                         ₹{(ping.amount || snapshotItem?.price || productCatalogInfo.price).toLocaleString()}
                       </TableCell>
-                      <TableCell className="text-right">
+                      <TableCell className="text-right pr-6">
                         {getStatusBadge(ping.status)}
                       </TableCell>
                     </TableRow>

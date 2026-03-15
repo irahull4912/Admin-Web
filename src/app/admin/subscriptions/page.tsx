@@ -1,4 +1,3 @@
-
 "use client";
 
 import { useEffect, useState } from "react";
@@ -33,7 +32,6 @@ export default function SubscriptionsPage() {
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    // We use collectionGroup to find all subscriptions regardless of path
     const q = query(collectionGroup(db, "subscriptions"));
     const unsubscribe = onSnapshot(q, (snapshot) => {
       const subData = snapshot.docs.map(doc => ({
@@ -73,9 +71,9 @@ export default function SubscriptionsPage() {
 
   return (
     <div className="space-y-8 animate-in fade-in slide-in-from-bottom-4 duration-500">
-      <div>
-        <h1 className="text-3xl font-headline font-bold text-foreground">Subscription Tracking</h1>
-        <p className="text-muted-foreground mt-1 text-lg">Monitor active plans, trials, and upcoming renewals.</p>
+      <div className="space-y-1">
+        <h1 className="text-3xl font-headline font-bold text-foreground tracking-tight">Subscription Tracking</h1>
+        <p className="text-muted-foreground text-lg font-medium">Monitor active plans, trials, and upcoming renewals.</p>
       </div>
 
       <div className="grid gap-6 sm:grid-cols-2 lg:grid-cols-3">
@@ -119,15 +117,15 @@ export default function SubscriptionsPage() {
           </div>
           <CardDescription>Unified view of all platform revenue streams.</CardDescription>
         </CardHeader>
-        <CardContent>
+        <CardContent className="p-0">
           <Table>
-            <TableHeader>
+            <TableHeader className="bg-muted/30">
               <TableRow>
-                <TableHead>Type</TableHead>
-                <TableHead>Plan</TableHead>
-                <TableHead>Status</TableHead>
-                <TableHead>End Date</TableHead>
-                <TableHead>Trial</TableHead>
+                <TableHead className="pl-6 font-bold uppercase text-[10px] tracking-widest py-4">Type</TableHead>
+                <TableHead className="font-bold uppercase text-[10px] tracking-widest py-4">Plan</TableHead>
+                <TableHead className="font-bold uppercase text-[10px] tracking-widest py-4">Status</TableHead>
+                <TableHead className="font-bold uppercase text-[10px] tracking-widest py-4">End Date</TableHead>
+                <TableHead className="text-right pr-6 font-bold uppercase text-[10px] tracking-widest py-4">Trial</TableHead>
               </TableRow>
             </TableHeader>
             <TableBody>
@@ -140,19 +138,22 @@ export default function SubscriptionsPage() {
               ) : (
                 subscriptions.map((sub) => (
                   <TableRow key={sub.id}>
-                    <TableCell>
-                      <Badge variant="outline">{sub.subscriberType}</Badge>
+                    <TableCell className="pl-6">
+                      <Badge variant="outline" className="font-bold tracking-widest uppercase text-[10px]">{sub.subscriberType}</Badge>
                     </TableCell>
-                    <TableCell className="font-medium">{sub.planName}</TableCell>
+                    <TableCell className="font-bold text-sm">{sub.planName}</TableCell>
                     <TableCell>
-                      <Badge variant={sub.status === "Active" ? "default" : "secondary"}>
+                      <Badge className={cn(
+                        "font-bold uppercase text-[10px] tracking-widest",
+                        sub.status === "Active" ? "bg-emerald-500/10 text-emerald-600 border-emerald-500/20" : "bg-slate-100 text-slate-600"
+                      )}>
                         {sub.status}
                       </Badge>
                     </TableCell>
-                    <TableCell>{new Date(sub.endDate).toLocaleDateString()}</TableCell>
-                    <TableCell>
+                    <TableCell className="text-sm text-slate-500">{new Date(sub.endDate).toLocaleDateString()}</TableCell>
+                    <TableCell className="text-right pr-6">
                       {sub.isTrial ? (
-                        <Badge className="bg-accent/20 text-accent border-accent/20">Trial</Badge>
+                        <Badge className="bg-accent/10 text-accent border-accent/20 uppercase font-black text-[9px] tracking-widest">Trial</Badge>
                       ) : (
                         <span className="text-muted-foreground text-xs">—</span>
                       )}

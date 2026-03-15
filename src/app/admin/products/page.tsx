@@ -235,13 +235,13 @@ export default function ProductsManagementPage() {
     <div className="space-y-8 animate-in fade-in slide-in-from-bottom-4 duration-500">
       <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
         <div className="space-y-1">
-          <div className="flex items-center gap-2 mb-2">
+          <div className="flex items-center gap-2">
             <Link href="/admin/dashboard" className="text-muted-foreground hover:text-primary transition-colors">
               <ArrowLeft className="h-4 w-4" />
             </Link>
             <h1 className="text-3xl font-headline font-bold text-foreground tracking-tight">Products Inventory</h1>
           </div>
-          <p className="text-muted-foreground mt-1 text-lg">Detailed overview of all products listed on the platform.</p>
+          <p className="text-muted-foreground text-lg font-medium">Detailed overview of all products listed on the platform.</p>
         </div>
         <div className="flex items-center gap-3">
           <Button 
@@ -513,10 +513,10 @@ export default function ProductsManagementPage() {
                                       <Table>
                                         <TableHeader className="bg-slate-50">
                                           <TableRow>
-                                            <TableHead className="text-[9px] uppercase font-bold">Color / Size</TableHead>
-                                            <TableHead className="text-[9px] uppercase font-bold">Selling Price</TableHead>
-                                            <TableHead className="text-[9px] uppercase font-bold">MRP</TableHead>
-                                            <TableHead className="text-[9px] uppercase font-bold text-right">Available Stock</TableHead>
+                                            <TableHead className="text-[9px] uppercase font-bold tracking-widest py-4">Color / Size</TableHead>
+                                            <TableHead className="text-[9px] uppercase font-bold tracking-widest py-4">Selling Price</TableHead>
+                                            <TableHead className="text-[9px] uppercase font-bold tracking-widest py-4">MRP</TableHead>
+                                            <TableHead className="text-[9px] uppercase font-bold tracking-widest py-4 text-right">Available Stock</TableHead>
                                           </TableRow>
                                         </TableHeader>
                                         <TableBody>

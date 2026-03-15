@@ -19,14 +19,11 @@ import { Badge } from "@/components/ui/badge";
 import { 
   Search, 
   User as UserIcon, 
-  ShoppingBag, 
   Loader2, 
   MapPin, 
   Phone, 
   Fingerprint,
   ArrowLeft,
-  Store,
-  ShoppingCart,
   Mail
 } from "lucide-react";
 import { useSearchParams, useRouter } from "next/navigation";
@@ -121,7 +118,7 @@ function UserManagementContent() {
         setResolvedData({ shops: shopNames, products: productDetails });
       }
     } catch (error) {
-      // Suppressed; managed by AdminLayout guard
+      // Catch and log if needed
     } finally {
       setLoading(false);
     }
@@ -155,7 +152,7 @@ function UserManagementContent() {
       <div className="flex flex-col md:flex-row md:items-end justify-between gap-6">
         <div className="space-y-1">
           <h1 className="text-3xl font-headline font-bold text-foreground tracking-tight">Identity Center</h1>
-          <p className="text-muted-foreground text-lg">Platform-wide profile management and deep audit logs.</p>
+          <p className="text-muted-foreground text-lg font-medium">Platform-wide profile management and deep audit logs.</p>
         </div>
         <div className="flex items-center gap-3">
           {foundUser && (
@@ -192,9 +189,9 @@ function UserManagementContent() {
               </CardHeader>
               <CardContent className="pt-8 space-y-8">
                 <div className="space-y-6">
-                  <div className="space-y-2"><p className="text-[10px] font-bold text-muted-foreground uppercase">Display Identity</p><p className="text-lg font-bold text-slate-900">{foundUser.displayName || "Anonymous User"}</p></div>
-                  <div className="space-y-2"><p className="text-[10px] font-bold text-muted-foreground uppercase">Authenticated Email</p><div className="flex items-center gap-2 text-sm font-medium text-primary"><Mail className="h-4 w-4" />{foundUser.email}</div></div>
-                  <div className="space-y-2"><p className="text-[10px] font-bold text-muted-foreground uppercase">Status</p>{getStatusBadge(foundUser.status)}</div>
+                  <div className="space-y-2"><p className="text-[10px] font-bold text-muted-foreground uppercase tracking-widest">Display Identity</p><p className="text-lg font-bold text-slate-900">{foundUser.displayName || "Anonymous User"}</p></div>
+                  <div className="space-y-2"><p className="text-[10px] font-bold text-muted-foreground uppercase tracking-widest">Authenticated Email</p><div className="flex items-center gap-2 text-sm font-medium text-primary"><Mail className="h-4 w-4" />{foundUser.email}</div></div>
+                  <div className="space-y-2"><p className="text-[10px] font-bold text-muted-foreground uppercase tracking-widest">Status</p>{getStatusBadge(foundUser.status)}</div>
                 </div>
               </CardContent>
             </Card>
@@ -204,8 +201,8 @@ function UserManagementContent() {
               <CardContent className="pt-8">
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-10">
                   <div className="space-y-8">
-                    <div className="flex items-start gap-4"><div className="p-2.5 bg-slate-50 rounded-xl border border-slate-100"><Phone className="h-5 w-5 text-slate-400" /></div><div className="space-y-1"><p className="text-[10px] font-bold text-muted-foreground uppercase">Verified Phone</p><p className="font-semibold text-slate-900">{foundUser.phoneNumber || "No phone recorded"}</p></div></div>
-                    <div className="flex items-start gap-4"><div className="p-2.5 bg-slate-50 rounded-xl border border-slate-100"><MapPin className="h-5 w-5 text-slate-400" /></div><div className="space-y-1"><p className="text-[10px] font-bold text-muted-foreground uppercase">Operating Location</p><p className="font-semibold text-slate-900 leading-snug">{foundUser.location || "Location undefined"}</p></div></div>
+                    <div className="flex items-start gap-4"><div className="p-2.5 bg-slate-50 rounded-xl border border-slate-100"><Phone className="h-5 w-5 text-slate-400" /></div><div className="space-y-1"><p className="text-[10px] font-bold text-muted-foreground uppercase tracking-widest">Verified Phone</p><p className="font-semibold text-slate-900">{foundUser.phoneNumber || "No phone recorded"}</p></div></div>
+                    <div className="flex items-start gap-4"><div className="p-2.5 bg-slate-50 rounded-xl border border-slate-100"><MapPin className="h-5 w-5 text-slate-400" /></div><div className="space-y-1"><p className="text-[10px] font-bold text-muted-foreground uppercase tracking-widest">Operating Location</p><p className="font-semibold text-slate-900 leading-snug">{foundUser.location || "Location undefined"}</p></div></div>
                   </div>
                 </div>
               </CardContent>

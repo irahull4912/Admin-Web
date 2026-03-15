@@ -30,18 +30,15 @@ import {
   Loader2, 
   MapPin, 
   Phone, 
-  Info,
-  User,
-  Mail,
-  Clock,
-  Star,
-  Zap,
-  Tag,
-  Calendar,
-  Layers,
-  ShieldCheck,
-  Building2,
-  FileText
+  User, 
+  Mail, 
+  Clock, 
+  Star, 
+  Zap, 
+  Tag, 
+  Calendar, 
+  Layers, 
+  ShieldCheck 
 } from "lucide-react";
 import Image from "next/image";
 import { ScrollArea } from "@/components/ui/scroll-area";
@@ -120,9 +117,9 @@ export default function SellersPage() {
 
   return (
     <div className="space-y-8 animate-in fade-in slide-in-from-bottom-4 duration-500">
-      <div>
+      <div className="space-y-1">
         <h1 className="text-3xl font-headline font-bold text-foreground tracking-tight">Merchant Registry</h1>
-        <p className="text-muted-foreground mt-1 text-lg">Platform-wide management of all registered shops and their operational health.</p>
+        <p className="text-muted-foreground text-lg font-medium">Platform-wide management of all registered shops and their operational health.</p>
       </div>
 
       <Card className="border-border bg-card/40 backdrop-blur shadow-sm overflow-hidden rounded-2xl">
@@ -141,11 +138,11 @@ export default function SellersPage() {
           <Table>
             <TableHeader className="bg-slate-50/50">
               <TableRow>
-                <TableHead className="pl-6 font-bold uppercase text-[10px] tracking-widest">Shop Identity</TableHead>
-                <TableHead className="font-bold uppercase text-[10px] tracking-widest">Owner / Contact</TableHead>
-                <TableHead className="font-bold uppercase text-[10px] tracking-widest">Status</TableHead>
-                <TableHead className="font-bold uppercase text-[10px] tracking-widest">Registered</TableHead>
-                <TableHead className="text-right pr-6 font-bold uppercase text-[10px] tracking-widest">Actions</TableHead>
+                <TableHead className="pl-6 font-bold uppercase text-[10px] tracking-widest py-4">Shop Identity</TableHead>
+                <TableHead className="font-bold uppercase text-[10px] tracking-widest py-4">Owner / Contact</TableHead>
+                <TableHead className="font-bold uppercase text-[10px] tracking-widest py-4">Status</TableHead>
+                <TableHead className="font-bold uppercase text-[10px] tracking-widest py-4">Registered</TableHead>
+                <TableHead className="text-right pr-6 font-bold uppercase text-[10px] tracking-widest py-4">Actions</TableHead>
               </TableRow>
             </TableHeader>
             <TableBody>
@@ -191,15 +188,15 @@ export default function SellersPage() {
                                     <h4 className="text-[10px] font-bold text-slate-400 uppercase tracking-widest flex items-center gap-2 px-1"><Tag className="h-3.5 w-3.5 text-primary" /> Core Merchant Identity</h4>
                                     <div className="bg-slate-50/50 p-6 rounded-2xl border border-slate-100 space-y-5 shadow-sm">
                                       <div className="grid grid-cols-2 gap-4">
-                                        <div><p className="text-[9px] text-muted-foreground uppercase font-bold mb-1">Category</p><p className="font-bold text-sm text-slate-900">{shop.category || "General Retail"}</p></div>
-                                        <div><p className="text-[9px] text-muted-foreground uppercase font-bold mb-1">Principal Agent</p><p className="font-bold text-sm text-slate-900">{shop.ownerName}</p></div>
+                                        <div><p className="text-[9px] text-muted-foreground uppercase font-bold mb-1 tracking-widest">Category</p><p className="font-bold text-sm text-slate-900">{shop.category || "General Retail"}</p></div>
+                                        <div><p className="text-[9px] text-muted-foreground uppercase font-bold mb-1 tracking-widest">Principal Agent</p><p className="font-bold text-sm text-slate-900">{shop.ownerName}</p></div>
                                       </div>
                                       <div className="pt-4 border-t border-slate-200/50 space-y-4">
                                         <div>
-                                          <p className="text-[9px] text-muted-foreground uppercase font-bold mb-1">Contact Email</p>
+                                          <p className="text-[9px] text-muted-foreground uppercase font-bold mb-1 tracking-widest">Contact Email</p>
                                           <p className="font-bold text-sm text-primary underline">{shop.contactEmail}</p>
                                         </div>
-                                        <div><p className="text-[9px] text-muted-foreground uppercase font-bold mb-1">Contact Number</p><p className="font-bold text-sm text-slate-900 flex items-center gap-2"><Phone className="h-3.5 w-3.5 text-slate-400" /> {shop.contactNumber || "N/A"}</p></div>
+                                        <div><p className="text-[9px] text-muted-foreground uppercase font-bold mb-1 tracking-widest">Contact Number</p><p className="font-bold text-sm text-slate-900 flex items-center gap-2"><Phone className="h-3.5 w-3.5 text-slate-400" /> {shop.contactNumber || "N/A"}</p></div>
                                       </div>
                                     </div>
                                   </section>
@@ -208,11 +205,11 @@ export default function SellersPage() {
                                     <h4 className="text-[10px] font-bold text-slate-400 uppercase tracking-widest flex items-center gap-2 px-1"><Zap className="h-3.5 w-3.5 text-amber-500" /> Performance Analytics</h4>
                                     <div className="grid grid-cols-2 gap-4">
                                       <div className="bg-emerald-50/50 p-5 rounded-2xl border border-emerald-100 text-center shadow-sm">
-                                        <p className="text-[8px] font-bold text-emerald-600 uppercase mb-2">Ping Acceptance</p>
+                                        <p className="text-[8px] font-bold text-emerald-600 uppercase mb-2 tracking-widest">Ping Acceptance</p>
                                         <p className="text-3xl font-black text-emerald-700">{shop.pingAcceptanceRate ? `${(shop.pingAcceptanceRate * 100).toFixed(1)}%` : "100%"}</p>
                                       </div>
                                       <div className="bg-amber-50/50 p-5 rounded-2xl border border-amber-100 text-center shadow-sm">
-                                        <p className="text-[8px] font-bold text-amber-600 uppercase mb-2">User Rating</p>
+                                        <p className="text-[8px] font-bold text-amber-600 uppercase mb-2 tracking-widest">User Rating</p>
                                         <div className="flex items-center justify-center gap-1">
                                           <Star className="h-6 w-6 fill-amber-500 text-amber-500" />
                                           <p className="text-3xl font-black text-amber-700">{shop.rating?.toFixed(1) || "0.0"}</p>
@@ -225,8 +222,8 @@ export default function SellersPage() {
                                   <section className="space-y-4">
                                     <h4 className="text-[10px] font-bold text-slate-400 uppercase tracking-widest flex items-center gap-2 px-1"><Calendar className="h-3.5 w-3.5 text-slate-400" /> Temporal Audit</h4>
                                     <div className="bg-slate-50/50 p-5 rounded-2xl border border-slate-100 flex justify-between gap-4 shadow-sm">
-                                      <div><p className="text-[9px] text-muted-foreground uppercase font-bold mb-1">Registration</p><p className="font-bold text-xs text-slate-700">{formatDate(shop.createdAt)}</p></div>
-                                      <div className="text-right"><p className="text-[9px] text-muted-foreground uppercase font-bold mb-1">Last Update</p><p className="font-bold text-xs text-slate-700">{formatDate(shop.updatedAt)}</p></div>
+                                      <div><p className="text-[9px] text-muted-foreground uppercase font-bold mb-1 tracking-widest">Registration</p><p className="font-bold text-xs text-slate-700">{formatDate(shop.createdAt)}</p></div>
+                                      <div className="text-right"><p className="text-[9px] text-muted-foreground uppercase font-bold mb-1 tracking-widest">Last Update</p><p className="font-bold text-xs text-slate-700">{formatDate(shop.updatedAt)}</p></div>
                                     </div>
                                   </section>
                                 </div>
@@ -236,16 +233,16 @@ export default function SellersPage() {
                                     <h4 className="text-[10px] font-bold text-slate-400 uppercase tracking-widest flex items-center gap-2 px-1"><MapPin className="h-3.5 w-3.5 text-destructive" /> Geographic Dossier</h4>
                                     <div className="bg-slate-50/50 p-6 rounded-2xl border border-slate-100 space-y-4 shadow-sm">
                                       <div className="grid grid-cols-2 gap-4">
-                                        <div><p className="text-[9px] text-muted-foreground uppercase font-bold mb-1">Door / No.</p><p className="font-bold text-sm text-slate-900">{shop.doorNo || "N/A"}</p></div>
-                                        <div><p className="text-[9px] text-muted-foreground uppercase font-bold mb-1">Zip Code</p><p className="font-bold text-sm text-slate-900 font-mono tracking-tighter">{shop.zipCode || "N/A"}</p></div>
+                                        <div><p className="text-[9px] text-muted-foreground uppercase font-bold mb-1 tracking-widest">Door / No.</p><p className="font-bold text-sm text-slate-900">{shop.doorNo || "N/A"}</p></div>
+                                        <div><p className="text-[9px] text-muted-foreground uppercase font-bold mb-1 tracking-widest">Zip Code</p><p className="font-bold text-sm text-slate-900 font-mono tracking-tighter">{shop.zipCode || "N/A"}</p></div>
                                       </div>
-                                      <div><p className="text-[9px] text-muted-foreground uppercase font-bold mb-1">Street Address</p><p className="font-bold text-sm text-slate-900 leading-tight">{shop.street}</p></div>
+                                      <div><p className="text-[9px] text-muted-foreground uppercase font-bold mb-1 tracking-widest">Street Address</p><p className="font-bold text-sm text-slate-900 leading-tight">{shop.street}</p></div>
                                       <div className="grid grid-cols-2 gap-4">
-                                        <div><p className="text-[9px] text-muted-foreground uppercase font-bold mb-1">City</p><p className="font-bold text-sm text-slate-900">{shop.city}</p></div>
-                                        <div><p className="text-[9px] text-muted-foreground uppercase font-bold mb-1">State</p><p className="font-bold text-sm text-slate-900">{shop.state}</p></div>
+                                        <div><p className="text-[9px] text-muted-foreground uppercase font-bold mb-1 tracking-widest">City</p><p className="font-bold text-sm text-slate-900">{shop.city}</p></div>
+                                        <div><p className="text-[9px] text-muted-foreground uppercase font-bold mb-1 tracking-widest">State</p><p className="font-bold text-sm text-slate-900">{shop.state}</p></div>
                                       </div>
-                                      <div className="pt-3 border-t border-slate-200/50 grid grid-cols-2 gap-4">
-                                        <div><p className="text-[9px] text-muted-foreground uppercase font-bold mb-1">Country</p><p className="font-black text-[10px] uppercase text-slate-500 tracking-widest">{shop.country || "India"}</p></div>
+                                      <div className="pt-3 border-t border-slate-200/50 grid grid-cols-2 gap-4 items-end">
+                                        <div><p className="text-[9px] text-muted-foreground uppercase font-bold mb-1 tracking-widest">Country</p><p className="font-black text-[10px] uppercase text-slate-500 tracking-widest">{shop.country || "India"}</p></div>
                                         <div className="text-right flex items-center justify-end gap-2 text-primary">
                                           <div className="text-right">
                                             <p className="text-[8px] font-mono leading-none opacity-60">LAT: {shop.latitude?.toFixed(4)}</p>
@@ -260,9 +257,9 @@ export default function SellersPage() {
                                   <section className="space-y-4">
                                     <h4 className="text-[10px] font-bold text-slate-400 uppercase tracking-widest flex items-center gap-2 px-1"><Clock className="h-3.5 w-3.5 text-blue-500" /> Operational Policy</h4>
                                     <div className="bg-slate-50/50 p-6 rounded-2xl border border-slate-100 space-y-4 shadow-sm">
-                                      <div><p className="text-[9px] text-muted-foreground uppercase font-bold mb-1">Operational Hours</p><p className="font-bold text-xs text-slate-700 whitespace-pre-line leading-relaxed">{shop.operationalHours || "Monday - Saturday: 09:00 - 21:00\nSunday: Closed"}</p></div>
+                                      <div><p className="text-[9px] text-muted-foreground uppercase font-bold mb-1 tracking-widest">Operational Hours</p><p className="font-bold text-xs text-slate-700 whitespace-pre-line leading-relaxed">{shop.operationalHours || "Monday - Saturday: 09:00 - 21:00\nSunday: Closed"}</p></div>
                                       <div className="pt-3 border-t border-slate-200/50">
-                                        <p className="text-[9px] text-muted-foreground uppercase font-bold mb-2">Merchant Policy</p>
+                                        <p className="text-[9px] text-muted-foreground uppercase font-bold mb-2 tracking-widest">Merchant Policy</p>
                                         <div className="text-xs italic text-slate-500 leading-relaxed font-medium bg-white/50 p-3 rounded-xl border border-dashed border-slate-200">
                                           {shop.storePolicy || "Merchant has not specified custom store policies. Standard platform-wide service agreements apply to all transactions."}
                                         </div>

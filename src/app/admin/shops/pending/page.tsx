@@ -125,9 +125,9 @@ export default function PendingShopsPage() {
         <Button variant="ghost" size="icon" asChild className="rounded-full h-12 w-12 hover:bg-slate-200/50">
           <Link href="/admin/dashboard"><ArrowLeft className="h-6 w-6" /></Link>
         </Button>
-        <div>
+        <div className="space-y-1">
           <h1 className="text-3xl font-headline font-black text-foreground tracking-tight">Shop Approvals</h1>
-          <p className="text-muted-foreground mt-1 text-lg">Detailed merchant dossiers for platform quality inspection.</p>
+          <p className="text-muted-foreground text-lg font-medium">Detailed merchant dossiers for platform quality inspection.</p>
         </div>
       </div>
 
@@ -226,12 +226,12 @@ export default function PendingShopsPage() {
                                     <h4 className="text-[10px] font-bold text-slate-400 uppercase tracking-widest flex items-center gap-2 px-1"><Tag className="h-3.5 w-3.5 text-primary" /> Identity & Classification</h4>
                                     <div className="grid gap-5 bg-slate-50/50 p-6 rounded-2xl border border-slate-100 shadow-sm">
                                       <div className="grid grid-cols-2 gap-4">
-                                        <div><p className="text-[10px] text-muted-foreground uppercase font-black mb-1">Category</p><p className="font-black text-sm text-slate-900">{shop.category || "General Retail"}</p></div>
-                                        <div><p className="text-[10px] text-muted-foreground uppercase font-black mb-1">Status</p><p className="font-black text-sm text-amber-600 uppercase tracking-tighter">{shop.status}</p></div>
+                                        <div><p className="text-[10px] text-muted-foreground uppercase font-black mb-1 tracking-widest">Category</p><p className="font-black text-sm text-slate-900">{shop.category || "General Retail"}</p></div>
+                                        <div><p className="text-[10px] text-muted-foreground uppercase font-black mb-1 tracking-widest">Status</p><p className="font-black text-sm text-amber-600 uppercase tracking-tighter">{shop.status}</p></div>
                                       </div>
                                       <div className="pt-4 border-t border-slate-200/50 flex justify-between items-center">
-                                        <div><p className="text-[10px] text-muted-foreground uppercase font-black mb-1">Registration Date</p><p className="font-bold text-xs text-slate-700">{formatDate(shop.createdAt)}</p></div>
-                                        <div className="text-right"><p className="text-[10px] text-muted-foreground uppercase font-black mb-1">Last System Update</p><p className="font-bold text-xs text-slate-700">{formatDate(shop.updatedAt)}</p></div>
+                                        <div><p className="text-[10px] text-muted-foreground uppercase font-black mb-1 tracking-widest">Registration Date</p><p className="font-bold text-xs text-slate-700">{formatDate(shop.createdAt)}</p></div>
+                                        <div className="text-right"><p className="text-[10px] text-muted-foreground uppercase font-black mb-1 tracking-widest">Last System Update</p><p className="font-bold text-xs text-slate-700">{formatDate(shop.updatedAt)}</p></div>
                                       </div>
                                     </div>
                                   </section>
@@ -239,10 +239,10 @@ export default function PendingShopsPage() {
                                   <section className="space-y-4">
                                     <h4 className="text-[10px] font-bold text-slate-400 uppercase tracking-widest flex items-center gap-2 px-1"><User className="h-3.5 w-3.5 text-blue-500" /> Ownership Context</h4>
                                     <div className="grid gap-5 bg-slate-50/50 p-6 rounded-2xl border border-slate-100 shadow-sm">
-                                      <div><p className="text-[10px] text-muted-foreground uppercase font-black mb-1">Principal Official</p><p className="font-black text-base text-slate-900">{shop.ownerName}</p></div>
+                                      <div><p className="text-[10px] text-muted-foreground uppercase font-black mb-1 tracking-widest">Principal Official</p><p className="font-black text-base text-slate-900">{shop.ownerName}</p></div>
                                       <div className="pt-4 border-t border-slate-200/50 space-y-4">
-                                        <div><p className="text-[10px] text-muted-foreground uppercase font-black mb-1">Contact Email</p><p className="font-black text-sm text-primary underline decoration-2 underline-offset-4">{shop.contactEmail}</p></div>
-                                        <div><p className="text-[10px] text-muted-foreground uppercase font-black mb-1">Validated Phone</p><p className="font-black text-sm text-slate-900 flex items-center gap-2"><Phone className="h-4 w-4 text-slate-400" /> {shop.contactNumber || "Not Provided"}</p></div>
+                                        <div><p className="text-[10px] text-muted-foreground uppercase font-black mb-1 tracking-widest">Contact Email</p><p className="font-black text-sm text-primary underline decoration-2 underline-offset-4">{shop.contactEmail}</p></div>
+                                        <div><p className="text-[10px] text-muted-foreground uppercase font-black mb-1 tracking-widest">Validated Phone</p><p className="font-black text-sm text-slate-900 flex items-center gap-2"><Phone className="h-4 w-4 text-slate-400" /> {shop.contactNumber || "Not Provided"}</p></div>
                                       </div>
                                     </div>
                                   </section>
@@ -251,11 +251,11 @@ export default function PendingShopsPage() {
                                     <h4 className="text-[10px] font-bold text-slate-400 uppercase tracking-widest flex items-center gap-2 px-1"><Zap className="h-3.5 w-3.5 text-emerald-500" /> Predicted Metrics</h4>
                                     <div className="grid grid-cols-2 gap-4">
                                       <div className="bg-emerald-50/50 p-6 rounded-2xl border border-emerald-100 text-center shadow-sm">
-                                        <p className="text-[9px] font-black text-emerald-600 uppercase mb-2">Acceptance Propensity</p>
+                                        <p className="text-[9px] font-black text-emerald-600 uppercase mb-2 tracking-widest">Acceptance Propensity</p>
                                         <p className="text-3xl font-black text-emerald-700">{shop.pingAcceptanceRate ? `${(shop.pingAcceptanceRate * 100).toFixed(1)}%` : "100%"}</p>
                                       </div>
                                       <div className="bg-amber-50/50 p-6 rounded-2xl border border-amber-100 text-center shadow-sm">
-                                        <p className="text-[9px] font-black text-amber-600 uppercase mb-2">Baseline Rating</p>
+                                        <p className="text-[9px] font-black text-amber-600 uppercase mb-2 tracking-widest">Baseline Rating</p>
                                         <div className="flex items-center justify-center gap-1.5 text-3xl font-black text-amber-700">
                                           <Star className="h-6 w-6 fill-amber-500 text-amber-500" />
                                           {shop.rating?.toFixed(1) || "0.0"}
@@ -271,16 +271,16 @@ export default function PendingShopsPage() {
                                     <h4 className="text-[10px] font-bold text-slate-400 uppercase tracking-widest flex items-center gap-2 px-1"><MapPin className="h-3.5 w-3.5 text-destructive" /> Geographic Dossier</h4>
                                     <div className="grid gap-5 bg-slate-50/50 p-6 rounded-2xl border border-slate-100 shadow-sm">
                                       <div className="grid grid-cols-2 gap-4">
-                                        <div><p className="text-[10px] text-muted-foreground uppercase font-black mb-1">Door / Premise No.</p><p className="font-black text-sm text-slate-900">{shop.doorNo || "N/A"}</p></div>
-                                        <div><p className="text-[10px] text-muted-foreground uppercase font-black mb-1">Zip / Postal Code</p><p className="font-black text-sm text-slate-900 font-mono tracking-tighter">{shop.zipCode || "N/A"}</p></div>
+                                        <div><p className="text-[10px] text-muted-foreground uppercase font-black mb-1 tracking-widest">Door / Premise No.</p><p className="font-black text-sm text-slate-900">{shop.doorNo || "N/A"}</p></div>
+                                        <div><p className="text-[10px] text-muted-foreground uppercase font-black mb-1 tracking-widest">Zip / Postal Code</p><p className="font-black text-sm text-slate-900 font-mono tracking-tighter">{shop.zipCode || "N/A"}</p></div>
                                       </div>
-                                      <div><p className="text-[10px] text-muted-foreground uppercase font-black mb-1">Thoroughfare</p><p className="font-black text-sm text-slate-900 leading-tight">{shop.street}</p></div>
+                                      <div><p className="text-[10px] text-muted-foreground uppercase font-black mb-1 tracking-widest">Thoroughfare</p><p className="font-black text-sm text-slate-900 leading-tight">{shop.street}</p></div>
                                       <div className="grid grid-cols-2 gap-4">
-                                        <div><p className="text-[10px] text-muted-foreground uppercase font-black mb-1">City / Township</p><p className="font-black text-sm text-slate-900">{shop.city}</p></div>
-                                        <div><p className="text-[10px] text-muted-foreground uppercase font-black mb-1">State / Province</p><p className="font-black text-sm text-slate-900">{shop.state}</p></div>
+                                        <div><p className="text-[10px] text-muted-foreground uppercase font-black mb-1 tracking-widest">City / Township</p><p className="font-black text-sm text-slate-900">{shop.city}</p></div>
+                                        <div><p className="text-[10px] text-muted-foreground uppercase font-black mb-1 tracking-widest">State / Province</p><p className="font-black text-sm text-slate-900">{shop.state}</p></div>
                                       </div>
                                       <div className="pt-4 border-t border-slate-200/50 grid grid-cols-2 gap-4 items-end">
-                                        <div><p className="text-[10px] text-muted-foreground uppercase font-black mb-1">Sovereign State</p><p className="font-black text-[10px] uppercase text-slate-500 tracking-widest">{shop.country || "INDIA"}</p></div>
+                                        <div><p className="text-[10px] text-muted-foreground uppercase font-black mb-1 tracking-widest">Sovereign State</p><p className="font-black text-[10px] uppercase text-slate-500 tracking-widest">{shop.country || "INDIA"}</p></div>
                                         <div className="text-right flex items-center justify-end gap-3 text-primary">
                                           <div className="text-right">
                                             <p className="text-[9px] font-mono leading-none opacity-40 mb-1">COORD: LAT {shop.latitude?.toFixed(5)}</p>
@@ -295,9 +295,9 @@ export default function PendingShopsPage() {
                                   <section className="space-y-4">
                                     <h4 className="text-[10px] font-bold text-slate-400 uppercase tracking-widest flex items-center gap-2 px-1"><Clock className="h-3.5 w-3.5 text-blue-500" /> Operational Context</h4>
                                     <div className="grid gap-5 bg-slate-50/50 p-6 rounded-2xl border border-slate-100 shadow-sm">
-                                      <div><p className="text-[10px] text-muted-foreground uppercase font-black mb-1">Standard Operational Hours</p><p className="font-black text-xs text-slate-700 whitespace-pre-line leading-relaxed">{shop.operationalHours || "Monday - Saturday: 09:00 - 21:00\nSunday: Automated Operations Only"}</p></div>
+                                      <div><p className="text-[10px] text-muted-foreground uppercase font-black mb-1 tracking-widest">Standard Operational Hours</p><p className="font-black text-xs text-slate-700 whitespace-pre-line leading-relaxed">{shop.operationalHours || "Monday - Saturday: 09:00 - 21:00\nSunday: Automated Operations Only"}</p></div>
                                       <div className="pt-4 border-t border-slate-200/50">
-                                        <p className="text-[10px] text-muted-foreground uppercase font-black mb-3">Merchant Service Policy</p>
+                                        <p className="text-[10px] text-muted-foreground uppercase font-black mb-3 tracking-widest">Merchant Service Policy</p>
                                         <div className="text-xs italic text-slate-500 leading-relaxed font-bold bg-white/60 p-4 rounded-2xl border border-dashed border-slate-200 shadow-inner">
                                           {shop.storePolicy || "Merchant has not defined a specialized service policy. Platform standard terms of use and service agreements are currently defaulted for all generated interactions."}
                                         </div>
