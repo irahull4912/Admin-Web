@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useState, useMemo } from "react";
 import { collection, query, onSnapshot, doc, Timestamp } from "firebase/firestore";
 import { db } from "@/lib/firebase";
 import { updateDocumentNonBlocking } from "@/firebase/non-blocking-updates";
@@ -30,7 +30,7 @@ import {
   Loader2, 
   MapPin, 
   Phone, 
-  User, 
+  Search, 
   Mail, 
   Clock, 
   Star, 
@@ -40,6 +40,7 @@ import {
   Layers, 
   ShieldCheck 
 } from "lucide-react";
+import { Input } from "@/components/ui/input";
 import Image from "next/image";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { format } from "date-fns";
@@ -74,6 +75,7 @@ interface ShopProfile {
 export default function SellersPage() {
   const [shops, setShops] = useState<ShopProfile[]>([]);
   const [loading, setLoading] = useState(true);
+  const [searchTerm, setSearchTerm] = useState("");
 
   useEffect(() => {
     const q = query(collection(db, "shops"));
@@ -87,6 +89,18 @@ export default function SellersPage() {
     }, () => setLoading(false));
     return () => unsubscribe();
   }, []);
+
+  const filteredShops = useMemo(() => {
+    if (!searchTerm) return shops;
+    const term = searchTerm.toLowerCase();
+    return shops.filter(shop => 
+      shop.name?.toLowerCase().includes(term) ||
+      shop.ownerName?.toLowerCase().includes(term) ||
+      shop.id?.toLowerCase().includes(term) ||
+      shop.contactEmail?.toLowerCase().includes(term) ||
+      shop.category?.toLowerCase().includes(term)
+    );
+  }, [shops, searchTerm]);
 
   const handleUpdateStatus = (shopId: string, newStatus: string) => {
     const docRef = doc(db, "shops", shopId);
@@ -117,13 +131,28 @@ export default function SellersPage() {
 
   return (
     <div className="space-y-8 animate-in fade-in slide-in-from-bottom-4 duration-500">
-      <div className="space-y-1">
-        <h1 className="text-3xl font-headline font-bold text-foreground tracking-tight">Merchant Registry</h1>
-        <p className="text-muted-foreground text-lg font-medium">Platform-wide management of all registered shops and their operational health.</p>
+      <div className="flex flex-col md:flex-row md:items-end justify-between gap-6">
+        <div className="space-y-1">
+          <h1 className="text-3xl font-headline font-bold text-foreground tracking-tight">Merchant Registry</h1>
+          <p className="text-muted-foreground text-lg font-medium">Platform-wide management of all registered shops and their operational health.</p>
+        </div>
+        <div className="flex items-center gap-3">
+          <div className="flex gap-2 min-w-[300px] md:min-w-[400px]">
+            <div className="relative flex-1">
+              <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+              <Input 
+                placeholder="Partial search by shop, owner or category..." 
+                className="pl-10 h-11 bg-white border-slate-200 rounded-xl shadow-sm focus-visible:ring-brand-red" 
+                value={searchTerm} 
+                onChange={(e) => setSearchTerm(e.target.value)} 
+              />
+            </div>
+          </div>
+        </div>
       </div>
 
       <Card className="border-border bg-card/40 backdrop-blur shadow-sm overflow-hidden rounded-2xl">
-        <CardHeader className="bg-muted/30 border-b py-6">
+        <CardHeader className="bg-muted/30 border-b py-6 px-8">
           <div className="flex items-center gap-3">
             <div className="bg-primary/10 p-2 rounded-lg">
               <Store className="h-5 w-5 text-primary" />
@@ -138,20 +167,24 @@ export default function SellersPage() {
           <Table>
             <TableHeader className="bg-slate-50/50">
               <TableRow>
-                <TableHead className="pl-6 font-bold uppercase text-[10px] tracking-widest py-4">Shop Identity</TableHead>
-                <TableHead className="font-bold uppercase text-[10px] tracking-widest py-4">Owner / Contact</TableHead>
-                <TableHead className="font-bold uppercase text-[10px] tracking-widest py-4">Status</TableHead>
-                <TableHead className="font-bold uppercase text-[10px] tracking-widest py-4">Registered</TableHead>
-                <TableHead className="text-right pr-6 font-bold uppercase text-[10px] tracking-widest py-4">Actions</TableHead>
+                <TableHead className="pl-8 font-bold uppercase text-[10px] tracking-widest py-5">Shop Identity</TableHead>
+                <TableHead className="py-5 font-bold uppercase text-[10px] tracking-widest py-5">Owner / Contact</TableHead>
+                <TableHead className="py-5 font-bold uppercase text-[10px] tracking-widest py-5">Status</TableHead>
+                <TableHead className="py-5 font-bold uppercase text-[10px] tracking-widest py-5">Registered</TableHead>
+                <TableHead className="text-right pr-8 font-bold uppercase text-[10px] tracking-widest py-5">Actions</TableHead>
               </TableRow>
             </TableHeader>
             <TableBody>
-              {shops.length === 0 ? (
-                <TableRow><TableCell colSpan={5} className="text-center py-24 text-muted-foreground font-medium">No shops registered in the system.</TableCell></TableRow>
+              {filteredShops.length === 0 ? (
+                <TableRow>
+                  <TableCell colSpan={5} className="text-center py-24 text-muted-foreground font-medium italic">
+                    {searchTerm ? "No merchants found matching your search criteria." : "No shops registered in the system."}
+                  </TableCell>
+                </TableRow>
               ) : (
-                shops.map((shop) => (
+                filteredShops.map((shop) => (
                   <TableRow key={shop.id} className="hover:bg-muted/10 transition-colors group">
-                    <TableCell className="pl-6">
+                    <TableCell className="pl-8">
                       <Dialog>
                         <DialogTrigger asChild>
                           <button className="flex flex-col items-start text-left hover:text-primary transition-colors group/name outline-none">
@@ -281,7 +314,7 @@ export default function SellersPage() {
                     </TableCell>
                     <TableCell>{getStatusBadge(shop.status)}</TableCell>
                     <TableCell className="text-xs font-medium text-slate-500">{formatDate(shop.createdAt).split(' ')[0]}</TableCell>
-                    <TableCell className="text-right pr-6 space-x-2">
+                    <TableCell className="text-right pr-8 space-x-2">
                       {shop.status !== "approved" && shop.status !== "active" ? (
                         <Button size="sm" variant="outline" className="h-9 gap-2 rounded-xl border-emerald-500/50 text-emerald-600 hover:bg-emerald-500/10 hover:text-emerald-700 transition-all font-bold text-xs" onClick={() => handleUpdateStatus(shop.id, "approved")}><CheckCircle2 className="h-3.5 w-3.5" /> Approve</Button>
                       ) : (
