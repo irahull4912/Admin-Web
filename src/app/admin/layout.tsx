@@ -1,12 +1,16 @@
+
 "use client";
 
 import { useEffect, useState } from "react";
 import { useRouter, usePathname } from "next/navigation";
-import { onAuthStateChanged } from "firebase/auth";
-import { auth } from "@/lib/firebase";
+import { onAuthStateChanged, signOut } from "firebase/auth";
+import { doc, getDoc } from "firebase/firestore";
+import { auth, db } from "@/lib/firebase";
 import { AdminSidebar } from "./components/sidebar";
 import { AdminTopNav } from "./components/top-nav";
 import { Loader2 } from "lucide-react";
+
+const SUPER_ADMIN_UID = '6BXkgq9KkCY8ZPBvSbMV6m5OuAV2';
 
 export default function AdminLayout({ children }: { children: React.ReactNode }) {
   const [loading, setLoading] = useState(true);
@@ -14,13 +18,44 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
   const pathname = usePathname();
 
   useEffect(() => {
-    const unsubscribe = onAuthStateChanged(auth, (user) => {
-      if (!user && pathname !== "/admin/login") {
-        router.push("/admin/login");
-      } else if (user && pathname === "/admin/login") {
-        router.push("/admin/dashboard");
+    const unsubscribe = onAuthStateChanged(auth, async (user) => {
+      // If no user and not on login page, go to login
+      if (!user) {
+        if (pathname !== "/admin/login") {
+          router.push("/admin/login");
+        }
+        setLoading(false);
+        return;
       }
-      setLoading(false);
+
+      // User is logged in, verify admin status
+      try {
+        const isAdmin = user.uid === SUPER_ADMIN_UID;
+        let isRegisteredAdmin = false;
+
+        if (!isAdmin) {
+          const adminDoc = await getDoc(doc(db, "adminUsers", user.uid));
+          isRegisteredAdmin = adminDoc.exists();
+        }
+
+        if (!isAdmin && !isRegisteredAdmin) {
+          // NOT AN ADMIN: Sign out and eject
+          await signOut(auth);
+          router.push("/");
+          return;
+        }
+
+        // IS AN ADMIN: Allow if on protected page, redirect if on login
+        if (pathname === "/admin/login") {
+          router.push("/admin/dashboard");
+        }
+      } catch (error) {
+        console.error("Auth Guard Error:", error);
+        await signOut(auth);
+        router.push("/admin/login");
+      } finally {
+        setLoading(false);
+      }
     });
 
     return () => unsubscribe();
@@ -35,7 +70,7 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
         </div>
         <div className="text-center space-y-1">
           <p className="text-sm font-bold text-slate-900 uppercase tracking-widest">AdminVault</p>
-          <p className="text-xs text-muted-foreground animate-pulse">Establishing Secure Session...</p>
+          <p className="text-xs text-muted-foreground animate-pulse">Verifying Security Credentials...</p>
         </div>
       </div>
     );
@@ -51,7 +86,6 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
       <div className="flex-1 flex flex-col min-w-0">
         <AdminTopNav />
         <main className="flex-1 overflow-y-auto p-8 custom-scrollbar relative">
-          {/* Subtle background pattern */}
           <div className="absolute inset-0 pointer-events-none opacity-40">
             <div className="absolute top-0 right-0 w-[500px] h-[500px] bg-primary/5 rounded-full blur-[100px]" />
             <div className="absolute bottom-0 left-0 w-[500px] h-[500px] bg-accent/5 rounded-full blur-[100px]" />

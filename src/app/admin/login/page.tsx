@@ -3,12 +3,15 @@
 
 import { useState } from "react";
 import { useRouter } from "next/navigation";
-import { signInWithPopup } from "firebase/auth";
-import { auth, googleProvider } from "@/lib/firebase";
+import { signInWithPopup, signOut } from "firebase/auth";
+import { doc, getDoc } from "firebase/firestore";
+import { auth, googleProvider, db } from "@/lib/firebase";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
-import { ShieldCheck, ArrowLeft, Loader2 } from "lucide-react";
+import { ShieldCheck, ArrowLeft, Loader2, Lock } from "lucide-react";
 import Link from "next/link";
+
+const SUPER_ADMIN_UID = '6BXkgq9KkCY8ZPBvSbMV6m5OuAV2';
 
 export default function AdminLoginPage() {
   const [loading, setLoading] = useState(false);
@@ -19,18 +22,35 @@ export default function AdminLoginPage() {
     setLoading(true);
     setError(null);
     try {
-      await signInWithPopup(auth, googleProvider);
+      const result = await signInWithPopup(auth, googleProvider);
+      const user = result.user;
+
+      // Immediate Admin Verification
+      const isSuperAdmin = user.uid === SUPER_ADMIN_UID;
+      let isRegisteredAdmin = false;
+
+      if (!isSuperAdmin) {
+        const adminDoc = await getDoc(doc(db, "adminUsers", user.uid));
+        isRegisteredAdmin = adminDoc.exists();
+      }
+
+      if (!isSuperAdmin && !isRegisteredAdmin) {
+        // Access Denied: Sign them back out
+        await signOut(auth);
+        setError("Access Denied: Admin privileges required for this portal.");
+        setLoading(false);
+        return;
+      }
+
       router.push("/admin/dashboard");
     } catch (err: any) {
       setError(err.message || "Failed to sign in. Please try again.");
-    } finally {
       setLoading(false);
     }
   };
 
   return (
     <div className="min-h-svh flex flex-col items-center justify-center bg-slate-50/50 p-4">
-      {/* Background decoration */}
       <div className="fixed inset-0 z-0 overflow-hidden pointer-events-none">
         <div className="absolute top-0 left-1/4 w-96 h-96 bg-primary/5 rounded-full blur-3xl" />
         <div className="absolute bottom-0 right-1/4 w-96 h-96 bg-accent/5 rounded-full blur-3xl" />
@@ -53,16 +73,17 @@ export default function AdminLoginPage() {
               <ShieldCheck className="h-8 w-8" />
             </div>
             <div className="space-y-2">
-              <CardTitle className="text-3xl font-bold tracking-tight text-slate-900">Admin Login</CardTitle>
+              <CardTitle className="text-3xl font-bold tracking-tight text-slate-900">Admin Access</CardTitle>
               <CardDescription className="text-slate-500 text-base">
-                Welcome back! Please sign in to access the AdminVault dashboard.
+                Secure gateway for authorized platform administrators.
               </CardDescription>
             </div>
           </CardHeader>
           <CardContent className="space-y-6">
             {error && (
-              <div className="bg-destructive/10 border border-destructive/20 text-destructive text-sm p-4 rounded-xl text-center font-medium animate-in fade-in slide-in-from-top-2">
-                {error}
+              <div className="bg-destructive/10 border border-destructive/20 text-destructive text-sm p-4 rounded-xl flex items-start gap-3 animate-in fade-in slide-in-from-top-2">
+                <Lock className="h-4 w-4 shrink-0 mt-0.5" />
+                <span className="font-medium">{error}</span>
               </div>
             )}
             
@@ -96,7 +117,7 @@ export default function AdminLoginPage() {
                     <path d="M1 1h22v22H1z" fill="none" />
                   </svg>
                 )}
-                {loading ? "Signing in..." : "Continue with Google"}
+                {loading ? "Authenticating..." : "Sign in as Administrator"}
               </Button>
             </div>
             
@@ -105,19 +126,19 @@ export default function AdminLoginPage() {
                 <span className="w-full border-t border-slate-100" />
               </div>
               <div className="relative flex justify-center text-[10px] uppercase font-bold tracking-widest text-slate-400">
-                <span className="bg-white px-3">Internal Use Only</span>
+                <span className="bg-white px-3">Identity Verification</span>
               </div>
             </div>
 
             <p className="text-[11px] text-center text-slate-400 leading-relaxed max-w-[280px] mx-auto">
-              This system is for authorized administrators only. All activities are monitored for security and compliance.
+              Access is restricted to verified system administrators. Unauthorized attempts will be logged and reported.
             </p>
           </CardContent>
         </Card>
         
         <div className="text-center">
           <p className="text-xs text-muted-foreground/60">
-            &copy; {new Date().getFullYear()} AdminVault Enterprise. All rights reserved.
+            &copy; {new Date().getFullYear()} AdminVault Security Systems.
           </p>
         </div>
       </div>
