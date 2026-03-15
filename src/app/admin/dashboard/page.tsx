@@ -49,7 +49,7 @@ import {
   DialogTrigger 
 } from "@/components/ui/dialog";
 import Image from "next/image";
-import Link from "next/Link";
+import Link from "next/link";
 
 interface PendingShop {
   id: string;
@@ -161,7 +161,7 @@ export default function AdminDashboardPage() {
           { label: "Successful", value: pingStats.successful, color: "text-brand-green", bg: "bg-brand-green/10", icon: Zap },
           { label: "Pending", value: pingStats.pending, color: "text-brand-orange", bg: "bg-brand-orange/10", icon: Clock },
           { label: "Confirmed", value: pingStats.confirmed, color: "text-brand-blue", bg: "bg-brand-blue/10", icon: Activity },
-          { label: "Cancelled", value: pingStats.red, color: "text-brand-red", bg: "bg-brand-red/10", icon: Zap },
+          { label: "Cancelled", value: pingStats.cancelled, color: "text-brand-red", bg: "bg-brand-red/10", icon: Zap },
           { label: "Expired", value: pingStats.expired, color: "text-slate-500", bg: "bg-slate-500/10", icon: ShieldAlert },
         ].map((item, idx) => (
           <Card key={idx} className="border-border/50 bg-card/30">
@@ -181,7 +181,9 @@ export default function AdminDashboardPage() {
               <CardTitle className="text-xl">Shop Approvals</CardTitle>
               <CardDescription>Review and manage new merchant registrations.</CardDescription>
             </div>
-            <Button variant="outline" size="sm" asChild className="border-brand-blue text-brand-blue hover:bg-brand-blue/10"><Link href="/admin/shops/pending">View All Pending</Link></Button>
+            <Button variant="outline" size="sm" asChild className="border-brand-blue text-brand-blue hover:bg-brand-blue/10">
+              <Link href="/admin/shops/pending">View All Pending</Link>
+            </Button>
           </div>
         </CardHeader>
         <CardContent className="p-0">
