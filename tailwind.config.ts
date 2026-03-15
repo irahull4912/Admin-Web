@@ -17,6 +17,14 @@ export default {
       colors: {
         background: 'hsl(var(--background))',
         foreground: 'hsl(var(--foreground))',
+        brand: {
+          red: 'hsl(var(--primary-red))',
+          blue: 'hsl(var(--accent-blue))',
+          green: 'hsl(var(--success-green))',
+          orange: 'hsl(var(--warm-orange))',
+          dark: 'hsl(var(--dark-bg))',
+          light: 'hsl(var(--light-bg))',
+        },
         card: {
           DEFAULT: 'hsl(var(--card))',
           foreground: 'hsl(var(--card-foreground))',

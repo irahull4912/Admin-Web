@@ -19,18 +19,18 @@ export function StatCard({ label, value, icon: Icon, trend, trendType, className
   const content = (
     <Card className={cn(
       "overflow-hidden border-border/50 bg-white shadow-sm transition-all duration-300",
-      href ? "hover:shadow-xl hover:-translate-y-1 hover:border-primary/30 cursor-pointer group" : "",
+      href ? "hover:shadow-xl hover:-translate-y-1 hover:border-brand-blue/30 cursor-pointer group" : "",
       className
     )}>
       <CardContent className="p-6">
         <div className="flex items-start justify-between">
           <div className="space-y-2">
-            <p className="text-xs font-bold text-muted-foreground uppercase tracking-widest">{label}</p>
+            <p className="text-[10px] font-bold text-muted-foreground uppercase tracking-widest">{label}</p>
             <p className="text-3xl font-bold tracking-tight text-foreground">{value}</p>
           </div>
           <div className={cn(
             "h-12 w-12 rounded-2xl bg-slate-50 flex items-center justify-center border border-slate-100 transition-all duration-300",
-            href ? "group-hover:bg-primary group-hover:border-primary group-hover:shadow-lg group-hover:shadow-primary/20" : ""
+            href ? "group-hover:bg-brand-blue group-hover:border-brand-blue group-hover:shadow-lg group-hover:shadow-brand-blue/20" : ""
           )}>
             <Icon className={cn("h-6 w-6 text-slate-400 transition-colors duration-300", href ? "group-hover:text-white" : "")} />
           </div>
@@ -40,7 +40,7 @@ export function StatCard({ label, value, icon: Icon, trend, trendType, className
           <div className="mt-4 flex items-center gap-2">
             <div className={cn(
               "flex items-center gap-0.5 text-[11px] font-bold px-2 py-0.5 rounded-full",
-              isPositive ? "bg-emerald-50 text-emerald-600" : "bg-destructive/5 text-destructive"
+              isPositive ? "bg-brand-green/10 text-brand-green" : "bg-brand-red/10 text-brand-red"
             )}>
               {isPositive ? <ArrowUpRight className="h-3 w-3" /> : <ArrowDownRight className="h-3 w-3" />}
               {trend}

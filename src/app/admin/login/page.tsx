@@ -65,30 +65,30 @@ export default function AdminLoginPage() {
   };
 
   return (
-    <div className="min-h-svh flex flex-col items-center justify-center bg-slate-50/50 p-4">
+    <div className="min-h-svh flex flex-col items-center justify-center bg-brand-light p-4">
       <div className="fixed inset-0 z-0 overflow-hidden pointer-events-none">
-        <div className="absolute top-0 left-1/4 w-96 h-96 bg-primary/5 rounded-full blur-3xl" />
-        <div className="absolute bottom-0 right-1/4 w-96 h-96 bg-accent/5 rounded-full blur-3xl" />
+        <div className="absolute top-0 left-1/4 w-96 h-96 bg-brand-red/5 rounded-full blur-3xl" />
+        <div className="absolute bottom-0 right-1/4 w-96 h-96 bg-brand-blue/5 rounded-full blur-3xl" />
       </div>
 
       <div className="w-full max-w-md space-y-6 relative z-10">
         <div className="flex flex-col items-center gap-2 mb-2">
           <Link 
             href="/" 
-            className="flex items-center gap-2 text-sm text-muted-foreground hover:text-foreground transition-colors group"
+            className="flex items-center gap-2 text-sm text-muted-foreground hover:text-brand-red transition-colors group"
           >
             <ArrowLeft className="w-4 h-4 transition-transform group-hover:-translate-x-1" />
             Back to home
           </Link>
         </div>
 
-        <Card className="border-border/50 shadow-xl shadow-slate-200/50 bg-white/80 backdrop-blur-sm">
+        <Card className="border-border/50 shadow-xl shadow-brand-dark/10 bg-white/80 backdrop-blur-sm">
           <CardHeader className="space-y-4 text-center pb-8">
-            <div className="mx-auto bg-primary text-primary-foreground p-3 rounded-2xl w-fit shadow-lg shadow-primary/20">
+            <div className="mx-auto bg-brand-red text-white p-3 rounded-2xl w-fit shadow-lg shadow-brand-red/20">
               <ShieldCheck className="h-8 w-8" />
             </div>
             <div className="space-y-2">
-              <CardTitle className="text-3xl font-bold tracking-tight text-slate-900">Admin Access</CardTitle>
+              <CardTitle className="text-3xl font-bold tracking-tight text-brand-dark">Admin Access</CardTitle>
               <CardDescription className="text-slate-500 text-base">
                 Secure gateway for authorized platform administrators.
               </CardDescription>
@@ -96,7 +96,7 @@ export default function AdminLoginPage() {
           </CardHeader>
           <CardContent className="space-y-6">
             {error && (
-              <div className="bg-destructive/10 border border-destructive/20 text-destructive text-sm p-4 rounded-xl flex items-start gap-3 animate-in fade-in slide-in-from-top-2">
+              <div className="bg-brand-red/10 border border-brand-red/20 text-brand-red text-sm p-4 rounded-xl flex items-start gap-3 animate-in fade-in slide-in-from-top-2">
                 <Lock className="h-4 w-4 shrink-0 mt-0.5" />
                 <span className="font-medium">{error}</span>
               </div>
@@ -107,7 +107,7 @@ export default function AdminLoginPage() {
                 variant="outline"
                 onClick={handleGoogleLogin} 
                 disabled={loading}
-                className="w-full h-12 text-base font-semibold border-slate-200 hover:bg-slate-50 hover:text-slate-900 transition-all active:scale-[0.98] flex items-center justify-center gap-3 shadow-sm"
+                className="w-full h-12 text-base font-semibold border-slate-200 hover:bg-brand-light hover:text-brand-red transition-all active:scale-[0.98] flex items-center justify-center gap-3 shadow-sm"
               >
                 {loading ? (
                   <Loader2 className="w-5 h-5 animate-spin" />

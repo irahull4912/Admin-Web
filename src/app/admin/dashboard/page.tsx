@@ -150,7 +150,7 @@ export default function AdminDashboardPage() {
       <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
         <div>
           <h1 className="text-3xl font-headline font-bold text-foreground tracking-tight">Admin Dashboard</h1>
-          <p className="text-muted-foreground mt-1 text-lg">Comprehensive platform metrics and real-time performance tracking.</p>
+          <p className="text-muted-foreground mt-1 text-lg font-medium">Comprehensive platform metrics and real-time performance tracking.</p>
         </div>
       </div>
 
@@ -163,17 +163,17 @@ export default function AdminDashboardPage() {
 
       <div className="grid gap-4 grid-cols-2 md:grid-cols-5">
         {[
-          { label: "Successful", value: pingStats.successful, color: "text-emerald-500", bg: "bg-emerald-500/10", icon: Zap },
-          { label: "Pending", value: pingStats.pending, color: "text-amber-500", bg: "bg-amber-500/10", icon: Clock },
-          { label: "Confirmed", value: pingStats.confirmed, color: "text-blue-500", bg: "bg-blue-500/10", icon: Activity },
-          { label: "Cancelled", value: pingStats.cancelled, color: "text-destructive", bg: "bg-destructive/10", icon: Zap },
+          { label: "Successful", value: pingStats.successful, color: "text-brand-green", bg: "bg-brand-green/10", icon: Zap },
+          { label: "Pending", value: pingStats.pending, color: "text-brand-orange", bg: "bg-brand-orange/10", icon: Clock },
+          { label: "Confirmed", value: pingStats.confirmed, color: "text-brand-blue", bg: "bg-brand-blue/10", icon: Activity },
+          { label: "Cancelled", value: pingStats.red, color: "text-brand-red", bg: "bg-brand-red/10", icon: Zap },
           { label: "Expired", value: pingStats.expired, color: "text-slate-500", bg: "bg-slate-500/10", icon: ShieldAlert },
         ].map((item, idx) => (
           <Card key={idx} className="border-border/50 bg-card/30">
             <CardContent className="p-4 flex flex-col items-center justify-center text-center">
               <div className={`p-2 rounded-full ${item.bg} mb-2`}><item.icon className={`h-4 w-4 ${item.color}`} /></div>
               <p className="text-2xl font-bold">{loading ? "..." : item.value}</p>
-              <p className="text-xs text-muted-foreground font-medium uppercase tracking-wider">{item.label} Pings</p>
+              <p className="text-[10px] text-muted-foreground font-bold uppercase tracking-wider">{item.label} Pings</p>
             </CardContent>
           </Card>
         ))}
@@ -186,7 +186,7 @@ export default function AdminDashboardPage() {
               <CardTitle className="text-xl">Shop Approvals</CardTitle>
               <CardDescription>Review and manage new merchant registrations.</CardDescription>
             </div>
-            <Button variant="outline" size="sm" asChild><Link href="/admin/shops/pending">View All Pending</Link></Button>
+            <Button variant="outline" size="sm" asChild className="border-brand-blue text-brand-blue hover:bg-brand-blue/10"><Link href="/admin/shops/pending">View All Pending</Link></Button>
           </div>
         </CardHeader>
         <CardContent className="p-0">
@@ -208,23 +208,23 @@ export default function AdminDashboardPage() {
                     <TableCell>{shop.ownerName || "N/A"}</TableCell>
                     <TableCell className="text-right">
                       <Dialog>
-                        <DialogTrigger asChild><Button variant="ghost" size="sm" onClick={() => setSelectedShop(shop)} className="text-primary hover:text-primary hover:bg-primary/10"><Info className="h-4 w-4 mr-1.5" />Details</Button></DialogTrigger>
+                        <DialogTrigger asChild><Button variant="ghost" size="sm" onClick={() => setSelectedShop(shop)} className="text-brand-blue hover:text-brand-blue hover:bg-brand-blue/10"><Info className="h-4 w-4 mr-1.5" />Details</Button></DialogTrigger>
                         <DialogContent className="sm:max-w-[500px]">
                           <DialogHeader><DialogTitle className="text-2xl font-bold">{shop.name}</DialogTitle><DialogDescription>Review registration details.</DialogDescription></DialogHeader>
                           <div className="space-y-6 py-4">
                             <div className="grid grid-cols-2 gap-4">
-                              <div className="space-y-1"><p className="text-xs font-semibold text-muted-foreground uppercase">Owner</p><p className="font-medium">{shop.ownerName || "N/A"}</p></div>
-                              <div className="space-y-1"><p className="text-xs font-semibold text-muted-foreground uppercase">Contact</p><div className="flex items-center gap-1.5 font-medium truncate"><Mail className="h-3.5 w-3.5 text-primary" />{shop.contactEmail}</div></div>
-                              <div className="space-y-1 col-span-2"><p className="text-xs font-semibold text-muted-foreground uppercase">Location</p><div className="flex items-center gap-1.5 font-medium"><MapPin className="h-3.5 w-3.5 text-primary" />{shop.location ? `${shop.location.street}, ${shop.location.city}` : "N/A"}</div></div>
+                              <div className="space-y-1"><p className="text-[10px] font-bold text-muted-foreground uppercase">Owner</p><p className="font-medium">{shop.ownerName || "N/A"}</p></div>
+                              <div className="space-y-1"><p className="text-[10px] font-bold text-muted-foreground uppercase">Contact</p><div className="flex items-center gap-1.5 font-medium truncate"><Mail className="h-3.5 w-3.5 text-brand-blue" />{shop.contactEmail}</div></div>
+                              <div className="space-y-1 col-span-2"><p className="text-[10px] font-bold text-muted-foreground uppercase">Location</p><div className="flex items-center gap-1.5 font-medium"><MapPin className="h-3.5 w-3.5 text-brand-blue" />{shop.location ? `${shop.location.street}, ${shop.location.city}` : "N/A"}</div></div>
                             </div>
                             <div className="space-y-2">
-                              <p className="text-xs font-semibold text-muted-foreground uppercase">Image</p>
+                              <p className="text-[10px] font-bold text-muted-foreground uppercase">Image</p>
                               {shop.imageUrl ? (<div className="relative aspect-video rounded-md overflow-hidden border"><Image src={shop.imageUrl} alt={shop.name} fill className="object-cover" /></div>) : (<div className="h-24 bg-muted/50 rounded-md flex items-center justify-center border border-dashed text-xs italic text-muted-foreground">No image</div>)}
                             </div>
                           </div>
                           <DialogFooter className="gap-2 sm:gap-0">
-                            <Button variant="outline" onClick={() => handleUpdateShopStatus(shop.id, 'rejected')} className="flex-1 sm:flex-none text-destructive border-destructive/20 hover:bg-destructive/10"><XCircle className="h-4 w-4 mr-2" />Reject</Button>
-                            <Button onClick={() => handleUpdateShopStatus(shop.id, 'approved')} className="flex-1 sm:flex-none bg-emerald-600 hover:bg-emerald-700 text-white"><CheckCircle2 className="h-4 w-4 mr-2" />Approve</Button>
+                            <Button variant="outline" onClick={() => handleUpdateShopStatus(shop.id, 'rejected')} className="flex-1 sm:flex-none text-brand-red border-brand-red/20 hover:bg-brand-red/10"><XCircle className="h-4 w-4 mr-2" />Reject</Button>
+                            <Button onClick={() => handleUpdateShopStatus(shop.id, 'approved')} className="flex-1 sm:flex-none bg-brand-green hover:bg-brand-green/80 text-brand-dark font-bold"><CheckCircle2 className="h-4 w-4 mr-2" />Approve</Button>
                           </DialogFooter>
                         </DialogContent>
                       </Dialog>
