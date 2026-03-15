@@ -1,6 +1,6 @@
 import Link from 'next/link';
 import { Button } from '@/components/ui/button';
-import { ShieldCheck, LayoutDashboard, LogIn } from 'lucide-react';
+import { ShieldCheck, LogIn } from 'lucide-react';
 
 export default function Home() {
   return (
@@ -32,17 +32,11 @@ export default function Home() {
               Admin Login
             </Link>
           </Button>
-          <Button variant="outline" size="lg" asChild className="h-12 px-8 text-lg font-semibold gap-2 border-primary/20 hover:bg-primary/5 transition-all hover:scale-105 active:scale-95">
-            <Link href="/admin/dashboard">
-              <LayoutDashboard className="w-5 h-5" />
-              Go to Dashboard
-            </Link>
-          </Button>
         </div>
 
         <div className="pt-12 grid grid-cols-1 sm:grid-cols-3 gap-6 opacity-80 animate-in fade-in duration-1000 delay-500">
           {[
-            { label: "Secure Access", desc: "Auth0 integrated" },
+            { label: "Secure Access", desc: "Enterprise Verified" },
             { label: "Real-time Stats", desc: "Live monitoring" },
             { label: "Easy Control", desc: "One-click actions" }
           ].map((feature, i) => (
