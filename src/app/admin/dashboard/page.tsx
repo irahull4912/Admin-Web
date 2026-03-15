@@ -149,7 +149,7 @@ export default function AdminDashboardPage() {
     <div className="space-y-8 animate-in fade-in slide-in-from-bottom-4 duration-500">
       <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
         <div>
-          <h1 className="text-3xl font-headline font-bold text-foreground tracking-tight">Executive Dashboard</h1>
+          <h1 className="text-3xl font-headline font-bold text-foreground tracking-tight">Admin Dashboard</h1>
           <p className="text-muted-foreground mt-1 text-lg">Comprehensive platform metrics and real-time performance tracking.</p>
         </div>
       </div>
