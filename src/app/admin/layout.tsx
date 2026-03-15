@@ -14,6 +14,7 @@ const SUPER_ADMIN_UID = '6BXkgq9KkCY8ZPBvSbMV6m5OuAV2';
 
 export default function AdminLayout({ children }: { children: React.ReactNode }) {
   const [loading, setLoading] = useState(true);
+  const [isAuthorized, setIsAuthorized] = useState(false);
   const router = useRouter();
   const pathname = usePathname();
   const { toast } = useToast();
@@ -22,6 +23,7 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
     const unsubscribe = onAuthStateChanged(auth, async (user) => {
       // 1. No User: Direct to login unless already there
       if (!user) {
+        setIsAuthorized(false);
         if (pathname !== "/admin/login") {
           router.push("/admin/login");
         }
@@ -34,7 +36,7 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
         const isSuperAdmin = user.uid === SUPER_ADMIN_UID;
         let isRegisteredAdmin = false;
 
-        // Attempt database verification
+        // Perform admin verification silently
         if (!isSuperAdmin) {
           const adminDoc = await getDoc(doc(db, "adminUsers", user.uid));
           isRegisteredAdmin = adminDoc.exists();
@@ -42,30 +44,26 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
 
         // 3. Authorization Check
         if (!isSuperAdmin && !isRegisteredAdmin) {
-          // NOT AUTHORIZED: Sign out and eject immediately
           await signOut(auth);
+          setIsAuthorized(false);
           toast({
             variant: "destructive",
             title: "Access Denied",
-            description: "You do not have admin privileges for this portal.",
+            description: "Admin privileges required for this portal.",
           });
           router.push("/");
           return;
         }
 
-        // 4. Final Routing: Redirect away from login if authorized
+        // 4. Authorized: Finalize state
+        setIsAuthorized(true);
         if (pathname === "/admin/login") {
           router.push("/admin/dashboard");
         }
-      } catch (error: any) {
-        // Handle database or network errors during verification
-        console.error("Route Guard Exception:", error);
+      } catch (error) {
+        // Suppress global errors during guard check to prevent race-condition toasts
         await signOut(auth);
-        toast({
-          variant: "destructive",
-          title: "Security Violation",
-          description: "An error occurred during verification. Access restricted.",
-        });
+        setIsAuthorized(false);
         router.push("/admin/login");
       } finally {
         setLoading(false);
@@ -75,16 +73,14 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
     return () => unsubscribe();
   }, [pathname, router, toast]);
 
+  // Loading state (Verifying Credentials)
   if (loading) {
     return (
       <div className="min-h-svh flex flex-col items-center justify-center bg-slate-50 gap-4">
-        <div className="relative">
-          <Loader2 className="h-12 w-12 text-primary animate-spin" />
-          <div className="absolute inset-0 h-12 w-12 rounded-full border-4 border-primary/10" />
-        </div>
+        <Loader2 className="h-12 w-12 text-primary animate-spin" />
         <div className="text-center space-y-1">
           <p className="text-sm font-bold text-slate-900 uppercase tracking-widest">AdminVault</p>
-          <p className="text-xs text-muted-foreground animate-pulse">Verifying Security Credentials...</p>
+          <p className="text-xs text-muted-foreground animate-pulse">Security Verification in Progress...</p>
         </div>
       </div>
     );
@@ -93,6 +89,11 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
   // Render children directly for login page to avoid sidebar/nav
   if (pathname === "/admin/login") {
     return <>{children}</>;
+  }
+
+  // Strict Guard: Prevent any dashboard rendering if not authorized
+  if (!isAuthorized) {
+    return null;
   }
 
   return (
