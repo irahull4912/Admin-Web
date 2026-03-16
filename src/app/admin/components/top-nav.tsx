@@ -1,9 +1,8 @@
-
 "use client";
 
 import { useEffect, useState } from "react";
-import { User, onAuthStateChanged, signOut } from "firebase/auth";
-import { auth } from "@/lib/firebase";
+import { onAuthStateChanged, signOut, type User } from "firebase/auth";
+import { useAuth } from "@/firebase";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Button } from "@/components/ui/button";
 import { 
@@ -20,15 +19,18 @@ import { useRouter } from "next/navigation";
 export function AdminTopNav() {
   const [user, setUser] = useState<User | null>(null);
   const router = useRouter();
+  const auth = useAuth();
 
   useEffect(() => {
+    if (!auth) return;
     const unsubscribe = onAuthStateChanged(auth, (currentUser) => {
       setUser(currentUser);
     });
     return () => unsubscribe();
-  }, []);
+  }, [auth]);
 
   const handleSignOut = async () => {
+    if (!auth) return;
     await signOut(auth);
     router.push("/admin/login");
   };

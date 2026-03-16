@@ -4,7 +4,7 @@ import { useEffect, useState } from "react";
 import { useRouter, usePathname } from "next/navigation";
 import { onAuthStateChanged, signOut } from "firebase/auth";
 import { doc, getDoc } from "firebase/firestore";
-import { auth, db } from "@/lib/firebase";
+import { useAuth, useFirestore } from "@/firebase";
 import { AdminSidebar } from "./components/sidebar";
 import { AdminTopNav } from "./components/top-nav";
 import { Loader2 } from "lucide-react";
@@ -18,8 +18,12 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
   const router = useRouter();
   const pathname = usePathname();
   const { toast } = useToast();
+  const auth = useAuth();
+  const db = useFirestore();
 
   useEffect(() => {
+    if (!auth || !db) return;
+
     const unsubscribe = onAuthStateChanged(auth, async (user) => {
       // 1. No User: Direct to login unless already there
       if (!user) {
@@ -36,7 +40,7 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
         const isSuperAdmin = user.uid === SUPER_ADMIN_UID;
         let isRegisteredAdmin = false;
 
-        // Perform admin verification silently
+        // Perform admin verification
         if (!isSuperAdmin) {
           const adminDoc = await getDoc(doc(db, "adminUsers", user.uid));
           isRegisteredAdmin = adminDoc.exists();
@@ -61,7 +65,6 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
           router.push("/admin/dashboard");
         }
       } catch (error) {
-        // Suppress global errors during guard check to prevent race-condition toasts
         await signOut(auth);
         setIsAuthorized(false);
         router.push("/admin/login");
@@ -71,9 +74,8 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
     });
 
     return () => unsubscribe();
-  }, [pathname, router, toast]);
+  }, [auth, db, pathname, router, toast]);
 
-  // Loading state (Verifying Credentials)
   if (loading) {
     return (
       <div className="min-h-svh flex flex-col items-center justify-center bg-slate-50 gap-4">
@@ -86,12 +88,10 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
     );
   }
 
-  // Render children directly for login page to avoid sidebar/nav
   if (pathname === "/admin/login") {
     return <>{children}</>;
   }
 
-  // Strict Guard: Prevent any dashboard rendering if not authorized
   if (!isAuthorized) {
     return null;
   }

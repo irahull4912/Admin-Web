@@ -11,9 +11,7 @@ import {
   collectionGroup,
   onSnapshot
 } from "firebase/firestore";
-import { db } from "@/lib/firebase";
-import { useUser } from "@/firebase";
-import { updateDocumentNonBlocking } from "@/firebase/non-blocking-updates";
+import { useUser, useFirestore, updateDocumentNonBlocking } from "@/firebase";
 import { StatCard } from "../components/stat-card";
 import { 
   Users, 
@@ -63,6 +61,7 @@ interface PendingShop {
 
 export default function AdminDashboardPage() {
   const { user, isUserLoading } = useUser();
+  const db = useFirestore();
   const [loading, setLoading] = useState(true);
   const [totalUsers, setTotalUsers] = useState(0);
   const [totalProducts, setTotalProducts] = useState(0);
@@ -80,7 +79,7 @@ export default function AdminDashboardPage() {
   });
 
   useEffect(() => {
-    if (!user || isUserLoading) return;
+    if (!user || isUserLoading || !db) return;
 
     const shopsQuery = query(collection(db, "shops"), where("status", "==", "pending"));
     const unsubscribeShops = onSnapshot(shopsQuery, (snapshot) => {
@@ -122,7 +121,7 @@ export default function AdminDashboardPage() {
         setTotalRevenue(revenue);
         setPingStats(stats);
       } catch (error) {
-        // Silently caught
+        // Suppress
       } finally {
         setLoading(false);
       }
@@ -130,13 +129,14 @@ export default function AdminDashboardPage() {
 
     fetchDashboardData();
     return () => unsubscribeShops();
-  }, [user, isUserLoading]);
+  }, [user, isUserLoading, db]);
 
   if (isUserLoading || !user) {
     return null;
   }
 
   const handleUpdateShopStatus = (shopId: string, newStatus: string) => {
+    if (!db) return;
     const docRef = doc(db, "shops", shopId);
     updateDocumentNonBlocking(docRef, { status: newStatus });
     setSelectedShop(null);

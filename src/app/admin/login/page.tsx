@@ -2,9 +2,9 @@
 
 import { useState } from "react";
 import { useRouter } from "next/navigation";
-import { signInWithPopup, signOut } from "firebase/auth";
+import { signInWithPopup, signOut, GoogleAuthProvider } from "firebase/auth";
 import { doc, getDoc } from "firebase/firestore";
-import { auth, googleProvider, db } from "@/lib/firebase";
+import { useAuth, useFirestore } from "@/firebase";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { ShieldCheck, ArrowLeft, Loader2, Lock } from "lucide-react";
@@ -18,26 +18,28 @@ export default function AdminLoginPage() {
   const [error, setError] = useState<string | null>(null);
   const router = useRouter();
   const { toast } = useToast();
+  const auth = useAuth();
+  const db = useFirestore();
 
   const handleGoogleLogin = async () => {
+    if (!auth || !db) return;
+    
     setLoading(true);
     setError(null);
     try {
+      const googleProvider = new GoogleAuthProvider();
       const result = await signInWithPopup(auth, googleProvider);
       const user = result.user;
 
-      // 1. Admin Verification Block
       const isSuperAdmin = user.uid === SUPER_ADMIN_UID;
       let isRegisteredAdmin = false;
 
       try {
         if (!isSuperAdmin) {
-          // Perform silent check to avoid triggering global error toasts for non-admins
           const adminDoc = await getDoc(doc(db, "adminUsers", user.uid));
           isRegisteredAdmin = adminDoc.exists();
         }
 
-        // 2. Immediate Rejection if not Admin
         if (!isSuperAdmin && !isRegisteredAdmin) {
           await signOut(auth);
           toast({
@@ -50,10 +52,8 @@ export default function AdminLoginPage() {
           return;
         }
 
-        // 3. Success
         router.push("/admin/dashboard");
       } catch (dbErr: any) {
-        // Handle database permission errors silently during verification
         await signOut(auth);
         setError("Security rejection: Admin verification failed.");
         setLoading(false);

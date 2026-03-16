@@ -7,22 +7,14 @@ import { getFirestore } from 'firebase/firestore'
 
 // IMPORTANT: DO NOT MODIFY THIS FUNCTION
 export function initializeFirebase() {
-  // Debug log for environment verification
-  if (process.env.NODE_ENV === 'development') {
-    console.log('Initializing Firebase with API Key:', firebaseConfig.apiKey ? 'Configured' : 'NOT Configured');
-  }
-
   if (!getApps().length) {
-    let firebaseApp;
-    try {
-      firebaseApp = initializeApp();
-    } catch (e) {
-      if (process.env.NODE_ENV === "production") {
-        console.warn('Automatic initialization failed. Falling back to firebase config object.', e);
-      }
-      firebaseApp = initializeApp(firebaseConfig);
+    // Initialize with config directly to ensure the API key is always passed correctly
+    const firebaseApp = initializeApp(firebaseConfig);
+    
+    if (process.env.NODE_ENV === 'development') {
+      console.log('Firebase initialized with Project ID:', firebaseConfig.projectId);
     }
-
+    
     return getSdks(firebaseApp);
   }
 
