@@ -1,17 +1,21 @@
-
 import { initializeApp, getApps, getApp } from 'firebase/app';
 import { getAuth, GoogleAuthProvider } from 'firebase/auth';
 import { getFirestore } from 'firebase/firestore';
 
 const firebaseConfig = {
-  apiKey: "AIzaSyCrd4pnTO_JjoFpdY_OUqPhet-k_8H6-ko",
-  authDomain: "studio-5676793669-2a70d.firebaseapp.com",
-  projectId: "studio-5676793669-2a70d",
-  storageBucket: "studio-5676793669-2a70d.firebasestorage.app",
-  messagingSenderId: "564605611126",
-  appId: "1:564605611126:web:70b38e6a060538fc744357",
-  measurementId: ""
+  apiKey: process.env.NEXT_PUBLIC_FIREBASE_API_KEY,
+  authDomain: process.env.NEXT_PUBLIC_FIREBASE_AUTH_DOMAIN,
+  projectId: process.env.NEXT_PUBLIC_FIREBASE_PROJECT_ID,
+  storageBucket: process.env.NEXT_PUBLIC_FIREBASE_STORAGE_BUCKET,
+  messagingSenderId: process.env.NEXT_PUBLIC_FIREBASE_MESSAGING_SENDER_ID,
+  appId: process.env.NEXT_PUBLIC_FIREBASE_APP_ID,
+  measurementId: process.env.NEXT_PUBLIC_FIREBASE_MEASUREMENT_ID || ""
 };
+
+// Debug log to verify environment variable loading
+if (process.env.NODE_ENV === 'development') {
+  console.log('Firebase API Key check:', process.env.NEXT_PUBLIC_FIREBASE_API_KEY ? 'Present' : 'Missing');
+}
 
 const app = getApps().length > 0 ? getApp() : initializeApp(firebaseConfig);
 const auth = getAuth(app);
