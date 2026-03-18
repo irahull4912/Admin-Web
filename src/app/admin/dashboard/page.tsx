@@ -1,13 +1,15 @@
 
 "use client";
 
-import { useMemo } from "react";
+import { useMemo, useEffect, useState } from "react";
 import { 
   collection, 
   query, 
   where,
   orderBy, 
   collectionGroup,
+  doc,
+  getDoc
 } from "firebase/firestore";
 import { useUser, useFirestore, updateDocumentNonBlocking, useCollection, useMemoFirebase } from "@/firebase";
 import { StatCard } from "../components/stat-card";
@@ -24,7 +26,8 @@ import {
   ClockAlert, 
   Mail, 
   IndianRupee,
-  Package
+  Package,
+  Loader2
 } from "lucide-react";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { 
@@ -45,37 +48,67 @@ import {
   DialogTitle, 
   DialogTrigger 
 } from "@/components/ui/dialog";
-import { doc } from "firebase/firestore";
 import Image from "next/image";
 import Link from "next/link";
-import { Loader2 } from "lucide-react";
 
-interface PendingShop {
-  id: string;
-  name: string;
-  ownerName?: string;
-  contactEmail: string;
-  location?: { city: string; street: string; };
-  imageUrl?: string;
-  status: string;
-}
+const SUPER_ADMIN_UID = '6BXkgq9KkCY8ZPBvSbMV6m5OuAV2';
 
 export default function AdminDashboardPage() {
   const { user, isUserLoading } = useUser();
   const db = useFirestore();
+  const [isAdminVerified, setIsAdminVerified] = useState(false);
 
-  // STRICT CONDITIONAL QUERIES: Prevent queries from firing until user is available to avoid permission race conditions.
-  const usersQuery = useMemoFirebase(() => user ? collection(db, "users") : null, [db, user]);
-  const pingsQuery = useMemoFirebase(() => user ? query(collection(db, "pings"), orderBy("createdAt", "desc")) : null, [db, user]);
-  const pendingShopsQuery = useMemoFirebase(() => user ? query(collection(db, "shops"), where("status", "==", "pending")) : null, [db, user]);
-  const productsQuery = useMemoFirebase(() => user ? collectionGroup(db, "products") : null, [db, user]);
+  // High-Security Verification: Double-check admin status before initiating listeners
+  useEffect(() => {
+    async function verifyAdmin() {
+      if (!user || !db) return;
+      
+      // Super Admin bypass
+      if (user.uid === SUPER_ADMIN_UID) {
+        setIsAdminVerified(true);
+        return;
+      }
+
+      // Standard Admin check
+      try {
+        const adminDoc = await getDoc(doc(db, "adminUsers", user.uid));
+        if (adminDoc.exists()) {
+          setIsAdminVerified(true);
+        }
+      } catch (e) {
+        console.error("Admin verification failed", e);
+      }
+    }
+    verifyAdmin();
+  }, [user, db]);
+
+  // Query Definitions: Only active once admin status is fully resolved
+  const usersQuery = useMemoFirebase(() => 
+    isAdminVerified ? collection(db, "users") : null, 
+    [db, isAdminVerified]
+  );
+  
+  const pingsQuery = useMemoFirebase(() => 
+    isAdminVerified ? query(collection(db, "pings"), orderBy("createdAt", "desc")) : null, 
+    [db, isAdminVerified]
+  );
+  
+  const pendingShopsQuery = useMemoFirebase(() => 
+    isAdminVerified ? query(collection(db, "shops"), where("status", "==", "pending")) : null, 
+    [db, isAdminVerified]
+  );
+  
+  const productsQuery = useMemoFirebase(() => 
+    isAdminVerified ? collectionGroup(db, "products") : null, 
+    [db, isAdminVerified]
+  );
 
   const { data: users, isLoading: usersLoading } = useCollection(usersQuery);
   const { data: pings, isLoading: pingsLoading } = useCollection(pingsQuery);
   const { data: pendingShops, isLoading: pendingShopsLoading } = useCollection(pendingShopsQuery);
   const { data: products, isLoading: productsLoading } = useCollection(productsQuery);
 
-  // Derived Statistics
+  // Statistics Aggregation
   const stats = useMemo(() => {
     if (!pings) return { successful: 0, pending: 0, confirmed: 0, cancelled: 0, expired: 0, revenue: 0 };
     
@@ -92,11 +125,11 @@ export default function AdminDashboardPage() {
     }, { successful: 0, pending: 0, confirmed: 0, cancelled: 0, expired: 0, revenue: 0 });
   }, [pings]);
 
-  // Handle unauthorized or loading state early
-  if (isUserLoading || !user) {
+  // Loading & Unauthorized States
+  if (isUserLoading || !user || !isAdminVerified) {
     return (
       <div className="flex h-[60vh] items-center justify-center flex-col gap-4">
-        <Loader2 className="h-10 w-10 animate-spin text-primary" />
+        <Loader2 className="h-10 w-10 animate-spin text-brand-red" />
         <p className="text-xs font-bold text-muted-foreground uppercase tracking-widest animate-pulse">Establishing Secure Session...</p>
       </div>
     );

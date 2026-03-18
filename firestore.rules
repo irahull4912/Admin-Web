@@ -3,33 +3,33 @@ rules_version = '2';
 service cloud.firestore {
   match /databases/{database}/documents {
 
-    // --- Helper Functions ---
+    // --- Core Security Definition ---
+    // Deployment Trigger: 2024-03-16-v2.1
+    
     function isSignedIn() {
       return request.auth != null;
     }
 
+    // Hardcoded Super Admin UID for emergency access and platform bootstrapping
     function isSuperAdmin() {
       return isSignedIn() && request.auth.uid == '6BXkgq9KkCY8ZPBvSbMV6m5OuAV2';
     }
 
+    // Standard Admin check: Either the Super Admin or a user registered in the adminUsers collection
     function isAdmin() {
-      if (isSuperAdmin()) {
-        return true;
-      }
-      return isSignedIn() && exists(/databases/$(database)/documents/adminUsers/$(request.auth.uid));
+      return isSuperAdmin() || (isSignedIn() && exists(/databases/$(database)/documents/adminUsers/$(request.auth.uid)));
     }
 
     function isOwner(userId) {
       return isSignedIn() && request.auth.uid == userId;
     }
 
-    // --- Global Super Admin Bypass ---
-    // This recursive match covers all documents for the super admin
+    // --- Global Super Admin Bypass (Primary Rule) ---
     match /{allPaths=**} {
       allow read, write: if isSuperAdmin();
     }
 
-    // --- Collection Rules ---
+    // --- Collection Specific Rules ---
 
     match /adminUsers/{adminId} {
       allow get: if isSignedIn();
@@ -60,17 +60,13 @@ service cloud.firestore {
     }
 
     // --- Collection Group Rules ---
-    // Explicitly allow listing products and other items across the database for authorized roles
+    // These allow the dashboard to query products across all shops simultaneously
     
     match /{path=**}/products/{productId} {
       allow list: if isAdmin() || isSignedIn();
     }
 
     match /{path=**}/subscriptions/{subscriptionId} {
-      allow list: if isAdmin();
-    }
-
-    match /{path=**}/purchases/{purchaseId} {
       allow list: if isAdmin();
     }
   }
