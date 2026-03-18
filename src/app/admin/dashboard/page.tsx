@@ -1,3 +1,4 @@
+
 "use client";
 
 import { useMemo } from "react";
@@ -47,6 +48,7 @@ import {
 import { doc } from "firebase/firestore";
 import Image from "next/image";
 import Link from "next/link";
+import { Loader2 } from "lucide-react";
 
 interface PendingShop {
   id: string;
@@ -62,11 +64,11 @@ export default function AdminDashboardPage() {
   const { user, isUserLoading } = useUser();
   const db = useFirestore();
 
-  // Queries memoized for real-time hooks
-  const usersQuery = useMemoFirebase(() => collection(db, "users"), [db]);
-  const pingsQuery = useMemoFirebase(() => query(collection(db, "pings"), orderBy("createdAt", "desc")), [db]);
-  const pendingShopsQuery = useMemoFirebase(() => query(collection(db, "shops"), where("status", "==", "pending")), [db]);
-  const productsQuery = useMemoFirebase(() => collectionGroup(db, "products"), [db]);
+  // STRICT CONDITIONAL QUERIES: Prevent queries from firing until user is available to avoid permission race conditions.
+  const usersQuery = useMemoFirebase(() => user ? collection(db, "users") : null, [db, user]);
+  const pingsQuery = useMemoFirebase(() => user ? query(collection(db, "pings"), orderBy("createdAt", "desc")) : null, [db, user]);
+  const pendingShopsQuery = useMemoFirebase(() => user ? query(collection(db, "shops"), where("status", "==", "pending")) : null, [db, user]);
+  const productsQuery = useMemoFirebase(() => user ? collectionGroup(db, "products") : null, [db, user]);
 
   const { data: users, isLoading: usersLoading } = useCollection(usersQuery);
   const { data: pings, isLoading: pingsLoading } = useCollection(pingsQuery);
@@ -84,14 +86,20 @@ export default function AdminDashboardPage() {
         acc.revenue += (ping.amount || 0);
       } else if (status === 'pending') acc.pending++;
       else if (status === 'confirmed') acc.confirmed++;
-      else if (status === 'cancelled') acc.cancelled++;
+      else if (['cancelled', 'canceled'].includes(status)) acc.cancelled++;
       else if (status === 'expired') acc.expired++;
       return acc;
     }, { successful: 0, pending: 0, confirmed: 0, cancelled: 0, expired: 0, revenue: 0 });
   }, [pings]);
 
+  // Handle unauthorized or loading state early
   if (isUserLoading || !user) {
-    return null;
+    return (
+      <div className="flex h-[60vh] items-center justify-center flex-col gap-4">
+        <Loader2 className="h-10 w-10 animate-spin text-primary" />
+        <p className="text-xs font-bold text-muted-foreground uppercase tracking-widest animate-pulse">Establishing Secure Session...</p>
+      </div>
+    );
   }
 
   const handleUpdateShopStatus = (shopId: string, newStatus: string) => {

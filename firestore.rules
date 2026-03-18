@@ -13,7 +13,10 @@ service cloud.firestore {
     }
 
     function isAdmin() {
-      return isSuperAdmin() || (isSignedIn() && exists(/databases/$(database)/documents/adminUsers/$(request.auth.uid)));
+      if (isSuperAdmin()) {
+        return true;
+      }
+      return isSignedIn() && exists(/databases/$(database)/documents/adminUsers/$(request.auth.uid));
     }
 
     function isOwner(userId) {
@@ -21,6 +24,7 @@ service cloud.firestore {
     }
 
     // --- Global Super Admin Bypass ---
+    // This recursive match covers all documents for the super admin
     match /{allPaths=**} {
       allow read, write: if isSuperAdmin();
     }
@@ -56,6 +60,7 @@ service cloud.firestore {
     }
 
     // --- Collection Group Rules ---
+    // Explicitly allow listing products and other items across the database for authorized roles
     
     match /{path=**}/products/{productId} {
       allow list: if isAdmin() || isSignedIn();
