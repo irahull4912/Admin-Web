@@ -1,17 +1,14 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useMemo } from "react";
 import { 
   collection, 
-  getDocs, 
-  doc,
   query, 
   where,
   orderBy, 
   collectionGroup,
-  onSnapshot
 } from "firebase/firestore";
-import { useUser, useFirestore, updateDocumentNonBlocking } from "@/firebase";
+import { useUser, useFirestore, updateDocumentNonBlocking, useCollection, useMemoFirebase } from "@/firebase";
 import { StatCard } from "../components/stat-card";
 import { 
   Users, 
@@ -25,7 +22,8 @@ import {
   Info, 
   ClockAlert, 
   Mail, 
-  IndianRupee 
+  IndianRupee,
+  Package
 } from "lucide-react";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { 
@@ -46,6 +44,7 @@ import {
   DialogTitle, 
   DialogTrigger 
 } from "@/components/ui/dialog";
+import { doc } from "firebase/firestore";
 import Image from "next/image";
 import Link from "next/link";
 
@@ -62,74 +61,34 @@ interface PendingShop {
 export default function AdminDashboardPage() {
   const { user, isUserLoading } = useUser();
   const db = useFirestore();
-  const [loading, setLoading] = useState(true);
-  const [totalUsers, setTotalUsers] = useState(0);
-  const [totalProducts, setTotalProducts] = useState(0);
-  const [totalRevenue, setTotalRevenue] = useState(0);
-  const [totalPings, setTotalPings] = useState(0);
-  const [pendingShops, setPendingShops] = useState<PendingShop[]>([]);
-  const [selectedShop, setSelectedShop] = useState<PendingShop | null>(null);
 
-  const [pingStats, setPingStats] = useState({
-    pending: 0,
-    confirmed: 0,
-    cancelled: 0,
-    successful: 0,
-    expired: 0,
-  });
+  // Queries memoized for real-time hooks
+  const usersQuery = useMemoFirebase(() => collection(db, "users"), [db]);
+  const pingsQuery = useMemoFirebase(() => query(collection(db, "pings"), orderBy("createdAt", "desc")), [db]);
+  const pendingShopsQuery = useMemoFirebase(() => query(collection(db, "shops"), where("status", "==", "pending")), [db]);
+  const productsQuery = useMemoFirebase(() => collectionGroup(db, "products"), [db]);
 
-  useEffect(() => {
-    if (!user || isUserLoading || !db) return;
+  const { data: users, isLoading: usersLoading } = useCollection(usersQuery);
+  const { data: pings, isLoading: pingsLoading } = useCollection(pingsQuery);
+  const { data: pendingShops, isLoading: pendingShopsLoading } = useCollection(pendingShopsQuery);
+  const { data: products, isLoading: productsLoading } = useCollection(productsQuery);
 
-    const shopsQuery = query(collection(db, "shops"), where("status", "==", "pending"));
-    const unsubscribeShops = onSnapshot(shopsQuery, (snapshot) => {
-      const shops = snapshot.docs.map(doc => ({
-        id: doc.id,
-        ...doc.data()
-      })) as PendingShop[];
-      setPendingShops(shops);
-    });
-
-    async function fetchDashboardData() {
-      try {
-        setLoading(true);
-        const [usersSnap, productsSnap, pingsSnap] = await Promise.all([
-          getDocs(collection(db, "users")),
-          getDocs(collectionGroup(db, "products")),
-          getDocs(query(collection(db, "pings"), orderBy("createdAt", "desc")))
-        ]);
-
-        setTotalUsers(usersSnap.size);
-        setTotalProducts(productsSnap.size);
-        setTotalPings(pingsSnap.size);
-
-        let revenue = 0;
-        const stats = { pending: 0, confirmed: 0, cancelled: 0, successful: 0, expired: 0 };
-        
-        pingsSnap.forEach(doc => {
-          const data = doc.data();
-          const rawStatus = (data.status || 'pending').toString().toLowerCase().trim();
-          if (['successful', 'success', 'completed'].includes(rawStatus)) {
-            stats.successful++;
-            revenue += (data.amount || 0);
-          } else if (rawStatus === 'pending') stats.pending++;
-          else if (rawStatus === 'confirmed') stats.confirmed++;
-          else if (rawStatus === 'cancelled') stats.cancelled++;
-          else if (rawStatus === 'expired') stats.expired++;
-        });
-
-        setTotalRevenue(revenue);
-        setPingStats(stats);
-      } catch (error) {
-        // Suppress
-      } finally {
-        setLoading(false);
-      }
-    }
-
-    fetchDashboardData();
-    return () => unsubscribeShops();
-  }, [user, isUserLoading, db]);
+  // Derived Statistics
+  const stats = useMemo(() => {
+    if (!pings) return { successful: 0, pending: 0, confirmed: 0, cancelled: 0, expired: 0, revenue: 0 };
+    
+    return pings.reduce((acc, ping) => {
+      const status = (ping.status || 'pending').toString().toLowerCase().trim();
+      if (['successful', 'success', 'completed'].includes(status)) {
+        acc.successful++;
+        acc.revenue += (ping.amount || 0);
+      } else if (status === 'pending') acc.pending++;
+      else if (status === 'confirmed') acc.confirmed++;
+      else if (status === 'cancelled') acc.cancelled++;
+      else if (status === 'expired') acc.expired++;
+      return acc;
+    }, { successful: 0, pending: 0, confirmed: 0, cancelled: 0, expired: 0, revenue: 0 });
+  }, [pings]);
 
   if (isUserLoading || !user) {
     return null;
@@ -139,8 +98,9 @@ export default function AdminDashboardPage() {
     if (!db) return;
     const docRef = doc(db, "shops", shopId);
     updateDocumentNonBlocking(docRef, { status: newStatus });
-    setSelectedShop(null);
   };
+
+  const isGlobalLoading = usersLoading || pingsLoading || pendingShopsLoading || productsLoading;
 
   return (
     <div className="space-y-8 animate-in fade-in slide-in-from-bottom-4 duration-500">
@@ -150,24 +110,51 @@ export default function AdminDashboardPage() {
       </div>
 
       <div className="grid gap-6 sm:grid-cols-2 lg:grid-cols-4">
-        <StatCard label="Total Revenue" value={loading ? "..." : `₹${totalRevenue.toLocaleString()}`} icon={IndianRupee} trend="+22.5%" trendType="positive" />
-        <StatCard label="Pending Approvals" value={pendingShops.length.toLocaleString()} icon={ClockAlert} trend={pendingShops.length > 0 ? "Action Required" : "All Clear"} trendType={pendingShops.length > 0 ? "negative" : "positive"} href="/admin/shops/pending" />
-        <StatCard label="Total Users" value={loading ? "..." : totalUsers.toLocaleString()} icon={Users} trend="+12%" trendType="positive" href="/admin/users" />
-        <StatCard label="Total Pings" value={loading ? "..." : totalPings.toLocaleString()} icon={Zap} trend="+15%" trendType="positive" href="/admin/pings" />
+        <StatCard 
+          label="Total Revenue" 
+          value={isGlobalLoading ? "..." : `₹${stats.revenue.toLocaleString()}`} 
+          icon={IndianRupee} 
+          trend="+22.5%" 
+          trendType="positive" 
+        />
+        <StatCard 
+          label="Pending Approvals" 
+          value={pendingShopsLoading ? "..." : (pendingShops?.length || 0).toLocaleString()} 
+          icon={ClockAlert} 
+          trend={(pendingShops?.length || 0) > 0 ? "Action Required" : "All Clear"} 
+          trendType={(pendingShops?.length || 0) > 0 ? "negative" : "positive"} 
+          href="/admin/shops/pending" 
+        />
+        <StatCard 
+          label="Total Users" 
+          value={usersLoading ? "..." : (users?.length || 0).toLocaleString()} 
+          icon={Users} 
+          trend="+12%" 
+          trendType="positive" 
+          href="/admin/users" 
+        />
+        <StatCard 
+          label="Total Products" 
+          value={productsLoading ? "..." : (products?.length || 0).toLocaleString()} 
+          icon={Package} 
+          trend="+8%" 
+          trendType="positive" 
+          href="/admin/products" 
+        />
       </div>
 
       <div className="grid gap-4 grid-cols-2 md:grid-cols-5">
         {[
-          { label: "Successful", value: pingStats.successful, color: "text-brand-green", bg: "bg-brand-green/10", icon: Zap },
-          { label: "Pending", value: pingStats.pending, color: "text-brand-orange", bg: "bg-brand-orange/10", icon: Clock },
-          { label: "Confirmed", value: pingStats.confirmed, color: "text-brand-blue", bg: "bg-brand-blue/10", icon: Activity },
-          { label: "Cancelled", value: pingStats.cancelled, color: "text-brand-red", bg: "bg-brand-red/10", icon: Zap },
-          { label: "Expired", value: pingStats.expired, color: "text-slate-500", bg: "bg-slate-500/10", icon: ShieldAlert },
+          { label: "Successful", value: stats.successful, color: "text-brand-green", bg: "bg-brand-green/10", icon: Zap },
+          { label: "Pending", value: stats.pending, color: "text-brand-orange", bg: "bg-brand-orange/10", icon: Clock },
+          { label: "Confirmed", value: stats.confirmed, color: "text-brand-blue", bg: "bg-brand-blue/10", icon: Activity },
+          { label: "Cancelled", value: stats.cancelled, color: "text-brand-red", bg: "bg-brand-red/10", icon: Zap },
+          { label: "Expired", value: stats.expired, color: "text-slate-500", bg: "bg-slate-500/10", icon: ShieldAlert },
         ].map((item, idx) => (
           <Card key={idx} className="border-border/50 bg-card/30">
             <CardContent className="p-4 flex flex-col items-center justify-center text-center">
               <div className={`p-2 rounded-full ${item.bg} mb-2`}><item.icon className={`h-4 w-4 ${item.color}`} /></div>
-              <p className="text-2xl font-bold">{loading ? "..." : item.value}</p>
+              <p className="text-2xl font-bold">{isGlobalLoading ? "..." : item.value}</p>
               <p className="text-[10px] text-muted-foreground font-bold uppercase tracking-wider">{item.label} Pings</p>
             </CardContent>
           </Card>
@@ -196,7 +183,9 @@ export default function AdminDashboardPage() {
               </TableRow>
             </TableHeader>
             <TableBody>
-              {pendingShops.length === 0 ? (
+              {pendingShopsLoading ? (
+                <TableRow><TableCell colSpan={3} className="h-24 text-center text-muted-foreground">Loading shops...</TableCell></TableRow>
+              ) : !pendingShops || pendingShops.length === 0 ? (
                 <TableRow><TableCell colSpan={3} className="h-24 text-center text-muted-foreground">No pending approvals.</TableCell></TableRow>
               ) : (
                 pendingShops.slice(0, 5).map((shop) => (
@@ -205,7 +194,11 @@ export default function AdminDashboardPage() {
                     <TableCell>{shop.ownerName || "N/A"}</TableCell>
                     <TableCell className="text-right pr-6">
                       <Dialog>
-                        <DialogTrigger asChild><Button variant="ghost" size="sm" onClick={() => setSelectedShop(shop)} className="text-brand-blue hover:text-brand-blue hover:bg-brand-blue/10"><Info className="h-4 w-4 mr-1.5" />Details</Button></DialogTrigger>
+                        <DialogTrigger asChild>
+                          <Button variant="ghost" size="sm" className="text-brand-blue hover:text-brand-blue hover:bg-brand-blue/10">
+                            <Info className="h-4 w-4 mr-1.5" />Details
+                          </Button>
+                        </DialogTrigger>
                         <DialogContent className="sm:max-w-[500px]">
                           <DialogHeader><DialogTitle className="text-2xl font-bold">{shop.name}</DialogTitle><DialogDescription>Review registration details.</DialogDescription></DialogHeader>
                           <div className="space-y-6 py-4">
