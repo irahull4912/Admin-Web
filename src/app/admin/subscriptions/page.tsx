@@ -21,14 +21,11 @@ import { cn } from "@/lib/utils";
 
 interface Subscription {
   id: string;
-  subscriberId: string; // The ID of the shop (Seller)
-  subscriberType: "Seller";
+  subscriberId: string;
   subscriptionTier: string;
-  startDate: string;
-  endDate: string;
   subscriptionStatus: string;
   paymentStatus: string;
-  nextBillingDate?: string;
+  endDate?: string;
 }
 
 export default function SubscriptionsPage() {
@@ -37,7 +34,6 @@ export default function SubscriptionsPage() {
   const [searchTerm, setSearchTerm] = useState("");
 
   useEffect(() => {
-    // Subscriptions are exclusively for shops, often stored in sub-collections or monitored via collectionGroup
     const q = query(collectionGroup(db, "subscriptions"));
     const unsubscribe = onSnapshot(q, (snapshot) => {
       const subData = snapshot.docs.map(doc => ({
@@ -55,13 +51,10 @@ export default function SubscriptionsPage() {
   }, []);
 
   const filteredSubscriptions = useMemo(() => {
-    if (!searchTerm) return subscriptions;
     const term = searchTerm.toLowerCase();
     return subscriptions.filter(sub => 
       (sub.subscriptionTier || "").toLowerCase().includes(term) ||
-      (sub.subscriptionStatus || "").toLowerCase().includes(term) ||
       (sub.subscriberId || "").toLowerCase().includes(term) ||
-      (sub.id || "").toLowerCase().includes(term) ||
       (sub.paymentStatus || "").toLowerCase().includes(term)
     );
   }, [subscriptions, searchTerm]);
@@ -74,13 +67,11 @@ export default function SubscriptionsPage() {
     subscriptions.filter(s => (s.paymentStatus || "").toLowerCase() === "trial").length, 
   [subscriptions]);
 
-  const totalCount = subscriptions.length;
-
   if (loading) {
     return (
       <div className="flex h-[60vh] items-center justify-center flex-col gap-4">
-        <Loader2 className="h-10 w-10 animate-spin text-brand-red" />
-        <p className="text-xs font-bold text-muted-foreground uppercase tracking-widest animate-pulse">Syncing Merchant Plans...</p>
+        <Loader2 className="h-10 w-10 animate-spin text-primary" />
+        <p className="text-xs font-bold text-muted-foreground uppercase tracking-widest animate-pulse">Loading Plans...</p>
       </div>
     );
   }
@@ -90,58 +81,46 @@ export default function SubscriptionsPage() {
       <div className="flex flex-col md:flex-row md:items-end justify-between gap-6">
         <div className="space-y-1">
           <div className="flex items-center gap-2">
-            <Link href="/admin/dashboard" className="text-muted-foreground hover:text-brand-red transition-colors">
+            <Link href="/admin/dashboard" className="text-muted-foreground hover:text-primary transition-colors">
               <ArrowLeft className="h-4 w-4" />
             </Link>
-            <h1 className="text-3xl font-headline font-bold text-foreground tracking-tight">Shop Subscriptions</h1>
+            <h1 className="text-3xl font-headline font-bold text-foreground tracking-tight">Merchant Plans</h1>
           </div>
-          <p className="text-muted-foreground text-lg font-medium">Manage and monitor merchant plans, billing cycles, and trial conversions.</p>
+          <p className="text-muted-foreground text-lg font-medium">Monitoring active subscriptions and trial nodes.</p>
         </div>
-        <div className="flex items-center gap-3">
-          <div className="relative w-64 md:w-80">
-            <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-            <Input 
-              placeholder="Search by plan, ID or status..." 
-              className="pl-9 h-11 bg-white border-slate-200 rounded-xl shadow-sm focus-visible:ring-brand-red"
-              value={searchTerm}
-              onChange={(e) => setSearchTerm(e.target.value)}
-            />
-          </div>
+        <div className="relative w-64 md:w-80">
+          <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+          <Input 
+            placeholder="Search plans or merchant IDs..." 
+            className="pl-9 h-11 bg-white rounded-xl shadow-sm"
+            value={searchTerm}
+            onChange={(e) => setSearchTerm(e.target.value)}
+          />
         </div>
       </div>
 
-      <div className="grid gap-6 sm:grid-cols-2 lg:grid-cols-3">
+      <div className="grid gap-6 sm:grid-cols-2">
         <StatCard 
           label="Active Shop Plans" 
-          value={loading ? "..." : activeCount} 
+          value={activeCount} 
           icon={CreditCard}
-          trend="Total Active"
+          trend="Total Revenue Nodes"
           trendType="positive"
         />
         <StatCard 
           label="Merchant Trials" 
-          value={loading ? "..." : trialsCount} 
+          value={trialsCount} 
           icon={Clock}
-          trend={trialsCount > 0 ? "Pending Conversion" : "All Paid"}
-          trendType={trialsCount > 0 ? "positive" : "negative"}
-        />
-        <StatCard 
-          label="Total Registered Shops" 
-          value={loading ? "..." : totalCount} 
-          icon={Store}
-          trend="Platform Reach"
+          trend="Pending Conversions"
           trendType="positive"
         />
       </div>
 
-      <Card className="border-border bg-card/40 backdrop-blur overflow-hidden rounded-2xl">
+      <Card className="border-border bg-white shadow-sm overflow-hidden rounded-2xl">
         <CardHeader className="bg-slate-50/50 border-b py-6 px-8">
           <div className="flex items-center gap-2">
-            <Zap className="h-5 w-5 text-brand-red" />
-            <div>
-              <CardTitle className="text-xl font-bold">Plan Audit Ledger</CardTitle>
-              <CardDescription className="text-[10px] font-bold uppercase tracking-widest text-muted-foreground">Comprehensive monitoring of merchant subscription nodes across the platform.</CardDescription>
-            </div>
+            <Zap className="h-5 w-5 text-primary" />
+            <CardTitle className="text-xl font-bold">Plan Audit Ledger</CardTitle>
           </div>
         </CardHeader>
         <CardContent className="p-0">
@@ -149,45 +128,45 @@ export default function SubscriptionsPage() {
             <TableHeader className="bg-slate-50/30">
               <TableRow>
                 <TableHead className="pl-8 font-bold uppercase text-[10px] tracking-widest py-5">Merchant ID</TableHead>
-                <TableHead className="font-bold uppercase text-[10px] tracking-widest py-5">Subscription Tier</TableHead>
-                <TableHead className="font-bold uppercase text-[10px] tracking-widest py-5">Plan Status</TableHead>
-                <TableHead className="font-bold uppercase text-[10px] tracking-widest py-5">Expiry Date</TableHead>
-                <TableHead className="text-right pr-8 font-bold uppercase text-[10px] tracking-widest py-5">Payment Status</TableHead>
+                <TableHead className="font-bold uppercase text-[10px] tracking-widest py-5">Tier</TableHead>
+                <TableHead className="font-bold uppercase text-[10px] tracking-widest py-5">Status</TableHead>
+                <TableHead className="font-bold uppercase text-[10px] tracking-widest py-5">Expiry</TableHead>
+                <TableHead className="text-right pr-8 font-bold uppercase text-[10px] tracking-widest py-5">Billing</TableHead>
               </TableRow>
             </TableHeader>
             <TableBody>
               {filteredSubscriptions.length === 0 ? (
                 <TableRow>
-                  <TableCell colSpan={5} className="h-48 text-center text-muted-foreground italic font-medium">
-                    {searchTerm ? "No plans matching your criteria." : "No active merchant subscription data found in database."}
+                  <TableCell colSpan={5} className="h-32 text-center text-muted-foreground italic font-medium">
+                    No matching records found.
                   </TableCell>
                 </TableRow>
               ) : (
                 filteredSubscriptions.map((sub) => (
-                  <TableRow key={sub.id} className="hover:bg-muted/10 transition-colors">
+                  <TableRow key={sub.id} className="hover:bg-slate-50/50 transition-colors">
                     <TableCell className="pl-8">
                       <div className="flex items-center gap-2">
                         <Store className="h-3 w-3 text-muted-foreground" />
                         <span className="font-mono text-xs text-slate-500 uppercase">{sub.subscriberId?.slice(0, 12)}</span>
                       </div>
                     </TableCell>
-                    <TableCell className="font-black text-sm text-slate-900">{sub.subscriptionTier}</TableCell>
+                    <TableCell className="font-bold text-sm text-slate-900">{sub.subscriptionTier}</TableCell>
                     <TableCell>
                       <Badge className={cn(
-                        "font-black uppercase text-[10px] tracking-widest px-3 py-1",
-                        (sub.subscriptionStatus || "").toLowerCase() === "active" ? "bg-brand-green/10 text-brand-green border-brand-green/20" : "bg-slate-100 text-slate-600"
+                        "font-black uppercase text-[9px] tracking-widest px-2.5 py-0.5",
+                        (sub.subscriptionStatus || "").toLowerCase() === "active" ? "bg-emerald-50 text-emerald-600 border-emerald-100" : "bg-slate-50 text-slate-500"
                       )}>
                         {sub.subscriptionStatus || "Unknown"}
                       </Badge>
                     </TableCell>
-                    <TableCell className="text-xs font-mono font-medium text-slate-500">
-                      {sub.endDate ? new Date(sub.endDate).toLocaleDateString(undefined, { year: 'numeric', month: 'short', day: 'numeric' }) : "—"}
+                    <TableCell className="text-xs font-medium text-slate-500">
+                      {sub.endDate ? new Date(sub.endDate).toLocaleDateString() : "—"}
                     </TableCell>
                     <TableCell className="text-right pr-8">
                       {(sub.paymentStatus || "").toLowerCase() === "trial" ? (
-                        <Badge className="bg-brand-orange/10 text-brand-orange border-brand-orange/20 uppercase font-black text-[9px] tracking-widest px-3">TRIAL ACCESS</Badge>
+                        <Badge variant="outline" className="text-amber-600 border-amber-200 bg-amber-50 uppercase font-black text-[9px] tracking-widest px-2.5">TRIAL</Badge>
                       ) : (
-                        <Badge variant="outline" className="text-slate-400 border-slate-200 uppercase font-black text-[9px] tracking-widest px-3">PAID / STANDARD</Badge>
+                        <Badge variant="outline" className="text-blue-600 border-blue-100 bg-blue-50 uppercase font-black text-[9px] tracking-widest px-2.5">PAID</Badge>
                       )}
                     </TableCell>
                   </TableRow>
