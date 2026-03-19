@@ -24,11 +24,11 @@ interface Subscription {
   id: string;
   subscriberId: string;
   subscriberType: "User" | "Seller";
-  subscriptionTier: string; // Renamed from planName
+  subscriptionTier: string;
   startDate: string;
   endDate: string;
-  subscriptionStatus: string; // Renamed from status
-  paymentStatus: string | boolean; // Renamed from isTrial
+  subscriptionStatus: string;
+  paymentStatus: string;
   nextBillingDate?: string;
 }
 
@@ -65,13 +65,12 @@ export default function SubscriptionsPage() {
     );
   }, [subscriptions, searchTerm]);
 
-  // Logic updated per request
   const activeCount = useMemo(() => 
     subscriptions.filter(s => (s.subscriptionStatus || "").toLowerCase() === "active").length, 
   [subscriptions]);
 
   const trialsCount = useMemo(() => 
-    subscriptions.filter(s => (String(s.paymentStatus)).toLowerCase() === "trial").length, 
+    subscriptions.filter(s => (s.paymentStatus || "").toLowerCase() === "trial").length, 
   [subscriptions]);
 
   const totalCount = subscriptions.length;
@@ -181,7 +180,7 @@ export default function SubscriptionsPage() {
                       {sub.endDate ? new Date(sub.endDate).toLocaleDateString(undefined, { year: 'numeric', month: 'short', day: 'numeric' }) : "—"}
                     </TableCell>
                     <TableCell className="text-right pr-8">
-                      {(String(sub.paymentStatus)).toLowerCase() === "trial" ? (
+                      {(sub.paymentStatus || "").toLowerCase() === "trial" ? (
                         <Badge className="bg-brand-orange/10 text-brand-orange border-brand-orange/20 uppercase font-black text-[9px] tracking-widest px-3">TRIAL ACCESS</Badge>
                       ) : (
                         <Badge variant="outline" className="text-slate-400 border-slate-200 uppercase font-black text-[9px] tracking-widest px-3">PAID / STANDARD</Badge>
