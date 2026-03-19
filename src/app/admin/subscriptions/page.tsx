@@ -1,3 +1,4 @@
+
 "use client";
 
 import { useEffect, useState, useMemo } from "react";
@@ -13,9 +14,10 @@ import {
 } from "@/components/ui/table";
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
-import { CreditCard, Clock, AlertTriangle, Loader2, Search, ArrowLeft, Filter } from "lucide-react";
+import { CreditCard, Clock, AlertTriangle, Loader2, Search, ArrowLeft, Filter, Zap } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
+import { StatCard } from "../components/stat-card";
 import Link from "next/link";
 import { cn } from "@/lib/utils";
 
@@ -64,23 +66,31 @@ export default function SubscriptionsPage() {
     );
   }, [subscriptions, searchTerm]);
 
-  const getEndingSoonCount = () => {
+  const activeCount = useMemo(() => 
+    subscriptions.filter(s => (s.status || "").toLowerCase() === "active").length, 
+  [subscriptions]);
+
+  const trialsCount = useMemo(() => 
+    subscriptions.filter(sub => sub.isTrial === true || String(sub.isTrial) === "true").length, 
+  [subscriptions]);
+
+  const endingSoonCount = useMemo(() => {
     const now = new Date();
     const nextWeek = new Date();
     nextWeek.setDate(now.getDate() + 7);
     
     return subscriptions.filter(sub => {
+      if (!sub.endDate) return false;
       const endDate = new Date(sub.endDate);
       return endDate > now && endDate <= nextWeek;
     }).length;
-  };
-
-  const trials = subscriptions.filter(sub => sub.isTrial);
+  }, [subscriptions]);
 
   if (loading) {
     return (
-      <div className="flex h-[60vh] items-center justify-center">
-        <Loader2 className="h-10 w-10 animate-spin text-primary" />
+      <div className="flex h-[60vh] items-center justify-center flex-col gap-4">
+        <Loader2 className="h-10 w-10 animate-spin text-brand-red" />
+        <p className="text-xs font-bold text-muted-foreground uppercase tracking-widest animate-pulse">Syncing Subscription Data...</p>
       </div>
     );
   }
@@ -111,85 +121,80 @@ export default function SubscriptionsPage() {
       </div>
 
       <div className="grid gap-6 sm:grid-cols-2 lg:grid-cols-3">
-        <Card className="border-border bg-card/40 backdrop-blur">
-          <CardHeader className="flex flex-row items-center justify-between pb-2">
-            <CardTitle className="text-sm font-medium">Active Subscriptions</CardTitle>
-            <CreditCard className="h-4 w-4 text-primary" />
-          </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold">{subscriptions.filter(s => s.status === "Active").length}</div>
-            <p className="text-xs text-muted-foreground">Across users and sellers</p>
-          </CardContent>
-        </Card>
-        <Card className="border-border bg-card/40 backdrop-blur">
-          <CardHeader className="flex flex-row items-center justify-between pb-2">
-            <CardTitle className="text-sm font-medium">Trial Periods</CardTitle>
-            <Clock className="h-4 w-4 text-accent" />
-          </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold">{trials.length}</div>
-            <p className="text-xs text-muted-foreground">Current active trials</p>
-          </CardContent>
-        </Card>
-        <Card className="border-border bg-card/40 backdrop-blur">
-          <CardHeader className="flex flex-row items-center justify-between pb-2">
-            <CardTitle className="text-sm font-medium">Ending Soon</CardTitle>
-            <AlertTriangle className="h-4 w-4 text-destructive" />
-          </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold">{getEndingSoonCount()}</div>
-            <p className="text-xs text-muted-foreground">Renewals in the next 7 days</p>
-          </CardContent>
-        </Card>
+        <StatCard 
+          label="Active Subscriptions" 
+          value={loading ? "..." : activeCount} 
+          icon={CreditCard}
+          trend="+5%"
+          trendType="positive"
+        />
+        <StatCard 
+          label="Trial Periods" 
+          value={loading ? "..." : trialsCount} 
+          icon={Clock}
+          trend={trialsCount > 0 ? "Active Trials" : "No Active Trials"}
+          trendType={trialsCount > 0 ? "positive" : "negative"}
+        />
+        <StatCard 
+          label="Expiring Soon" 
+          value={loading ? "..." : endingSoonCount} 
+          icon={AlertTriangle}
+          trend="Next 7 Days"
+          trendType={endingSoonCount > 0 ? "negative" : "positive"}
+        />
       </div>
 
-      <Card className="border-border bg-card/40 backdrop-blur overflow-hidden">
-        <CardHeader>
+      <Card className="border-border bg-card/40 backdrop-blur overflow-hidden rounded-2xl">
+        <CardHeader className="bg-slate-50/50 border-b py-6 px-8">
           <div className="flex items-center gap-2">
-            <CreditCard className="h-5 w-5 text-primary" />
-            <CardTitle>Master Subscriptions List</CardTitle>
+            <Zap className="h-5 w-5 text-brand-red" />
+            <div>
+              <CardTitle className="text-xl font-bold">Revenue Matrix</CardTitle>
+              <CardDescription className="text-[10px] font-bold uppercase tracking-widest text-muted-foreground">Detailed audit of all current platform subscription nodes.</CardDescription>
+            </div>
           </div>
-          <CardDescription>Unified view of all platform revenue streams ({filteredSubscriptions.length} results).</CardDescription>
         </CardHeader>
         <CardContent className="p-0">
           <Table>
-            <TableHeader className="bg-muted/30">
+            <TableHeader className="bg-slate-50/30">
               <TableRow>
-                <TableHead className="pl-6 font-bold uppercase text-[10px] tracking-widest py-4">Type</TableHead>
-                <TableHead className="font-bold uppercase text-[10px] tracking-widest py-4">Plan</TableHead>
-                <TableHead className="font-bold uppercase text-[10px] tracking-widest py-4">Status</TableHead>
-                <TableHead className="font-bold uppercase text-[10px] tracking-widest py-4">End Date</TableHead>
-                <TableHead className="text-right pr-6 font-bold uppercase text-[10px] tracking-widest py-4">Trial</TableHead>
+                <TableHead className="pl-8 font-bold uppercase text-[10px] tracking-widest py-5">Node Type</TableHead>
+                <TableHead className="font-bold uppercase text-[10px] tracking-widest py-5">Plan Identity</TableHead>
+                <TableHead className="font-bold uppercase text-[10px] tracking-widest py-5">Status</TableHead>
+                <TableHead className="font-bold uppercase text-[10px] tracking-widest py-5">Termination Date</TableHead>
+                <TableHead className="text-right pr-8 font-bold uppercase text-[10px] tracking-widest py-5">Cycle Type</TableHead>
               </TableRow>
             </TableHeader>
             <TableBody>
               {filteredSubscriptions.length === 0 ? (
                 <TableRow>
-                  <TableCell colSpan={5} className="text-center py-12 text-muted-foreground italic">
-                    {searchTerm ? "No subscriptions matching your search." : "No subscriptions tracked yet."}
+                  <TableCell colSpan={5} className="h-48 text-center text-muted-foreground italic font-medium">
+                    {searchTerm ? "No nodes matching your criteria." : "No active subscription data found in database."}
                   </TableCell>
                 </TableRow>
               ) : (
                 filteredSubscriptions.map((sub) => (
-                  <TableRow key={sub.id}>
-                    <TableCell className="pl-6">
-                      <Badge variant="outline" className="font-bold tracking-widest uppercase text-[10px]">{sub.subscriberType}</Badge>
+                  <TableRow key={sub.id} className="hover:bg-muted/10 transition-colors">
+                    <TableCell className="pl-8">
+                      <Badge variant="outline" className="font-black tracking-widest uppercase text-[10px] bg-slate-50">{sub.subscriberType}</Badge>
                     </TableCell>
-                    <TableCell className="font-bold text-sm">{sub.planName}</TableCell>
+                    <TableCell className="font-black text-sm text-slate-900">{sub.planName}</TableCell>
                     <TableCell>
                       <Badge className={cn(
-                        "font-bold uppercase text-[10px] tracking-widest",
-                        sub.status === "Active" ? "bg-emerald-500/10 text-emerald-600 border-emerald-500/20" : "bg-slate-100 text-slate-600"
+                        "font-black uppercase text-[10px] tracking-widest px-3 py-1",
+                        (sub.status || "").toLowerCase() === "active" ? "bg-emerald-500/10 text-emerald-600 border-emerald-500/20" : "bg-slate-100 text-slate-600"
                       )}>
-                        {sub.status}
+                        {sub.status || "Unknown"}
                       </Badge>
                     </TableCell>
-                    <TableCell className="text-sm text-slate-500">{new Date(sub.endDate).toLocaleDateString()}</TableCell>
-                    <TableCell className="text-right pr-6">
-                      {sub.isTrial ? (
-                        <Badge className="bg-accent/10 text-accent border-accent/20 uppercase font-black text-[9px] tracking-widest">Trial</Badge>
+                    <TableCell className="text-xs font-mono font-medium text-slate-500">
+                      {sub.endDate ? new Date(sub.endDate).toLocaleDateString(undefined, { year: 'numeric', month: 'short', day: 'numeric' }) : "—"}
+                    </TableCell>
+                    <TableCell className="text-right pr-8">
+                      {sub.isTrial === true || String(sub.isTrial) === "true" ? (
+                        <Badge className="bg-brand-orange/10 text-brand-orange border-brand-orange/20 uppercase font-black text-[9px] tracking-widest px-3">TRIAL ACCESS</Badge>
                       ) : (
-                        <span className="text-muted-foreground text-xs">—</span>
+                        <Badge variant="outline" className="text-slate-400 border-slate-200 uppercase font-black text-[9px] tracking-widest px-3">STANDARD CYCLE</Badge>
                       )}
                     </TableCell>
                   </TableRow>
