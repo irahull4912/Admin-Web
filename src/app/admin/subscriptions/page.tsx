@@ -1,4 +1,3 @@
-
 "use client";
 
 import { useEffect, useState, useMemo } from "react";
@@ -61,7 +60,8 @@ export default function SubscriptionsPage() {
       (sub.subscriptionTier || "").toLowerCase().includes(term) ||
       (sub.subscriberType || "").toLowerCase().includes(term) ||
       (sub.subscriptionStatus || "").toLowerCase().includes(term) ||
-      (sub.id || "").toLowerCase().includes(term)
+      (sub.id || "").toLowerCase().includes(term) ||
+      (sub.paymentStatus || "").toLowerCase().includes(term)
     );
   }, [subscriptions, searchTerm]);
 
