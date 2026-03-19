@@ -29,7 +29,7 @@ interface Subscription {
   startDate: string;
   endDate: string;
   status: string;
-  isTrial: boolean;
+  isTrial: boolean | string;
   nextBillingDate?: string;
 }
 
@@ -66,25 +66,20 @@ export default function SubscriptionsPage() {
     );
   }, [subscriptions, searchTerm]);
 
-  const activeCount = useMemo(() => 
-    subscriptions.filter(s => (s.status || "").toLowerCase() === "active").length, 
+  // "Real" Subscriptions = Active and NOT Trial
+  const realActiveCount = useMemo(() => 
+    subscriptions.filter(s => {
+      const isActive = (s.status || "").toLowerCase() === "active";
+      const isTrial = s.isTrial === true || String(s.isTrial) === "true";
+      return isActive && !isTrial;
+    }).length, 
   [subscriptions]);
 
   const trialsCount = useMemo(() => 
     subscriptions.filter(sub => sub.isTrial === true || String(sub.isTrial) === "true").length, 
   [subscriptions]);
 
-  const endingSoonCount = useMemo(() => {
-    const now = new Date();
-    const nextWeek = new Date();
-    nextWeek.setDate(now.getDate() + 7);
-    
-    return subscriptions.filter(sub => {
-      if (!sub.endDate) return false;
-      const endDate = new Date(sub.endDate);
-      return endDate > now && endDate <= nextWeek;
-    }).length;
-  }, [subscriptions]);
+  const totalCount = subscriptions.length;
 
   if (loading) {
     return (
@@ -122,25 +117,25 @@ export default function SubscriptionsPage() {
 
       <div className="grid gap-6 sm:grid-cols-2 lg:grid-cols-3">
         <StatCard 
-          label="Active Subscriptions" 
-          value={loading ? "..." : activeCount} 
+          label="Real Subscriptions" 
+          value={loading ? "..." : realActiveCount} 
           icon={CreditCard}
-          trend="+5%"
+          trend="Active Paid"
           trendType="positive"
         />
         <StatCard 
           label="Trial Periods" 
           value={loading ? "..." : trialsCount} 
           icon={Clock}
-          trend={trialsCount > 0 ? "Active Trials" : "No Active Trials"}
+          trend={trialsCount > 0 ? "Potential Leads" : "No Active Trials"}
           trendType={trialsCount > 0 ? "positive" : "negative"}
         />
         <StatCard 
-          label="Expiring Soon" 
-          value={loading ? "..." : endingSoonCount} 
-          icon={AlertTriangle}
-          trend="Next 7 Days"
-          trendType={endingSoonCount > 0 ? "negative" : "positive"}
+          label="Total Nodes" 
+          value={loading ? "..." : totalCount} 
+          icon={Zap}
+          trend="Platform-wide"
+          trendType="positive"
         />
       </div>
 
