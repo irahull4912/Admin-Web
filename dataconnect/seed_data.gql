@@ -1,0 +1,130 @@
+mutation CreateDemoData @transaction @auth(level: PUBLIC, insecureReason: "This is seed data for the application and can be publicly exposed.") {
+  adminUser_insertMany(data: [
+    {
+      id: "6e2e5052-094d-4e92-80b6-1937107c8a6f",
+      username: "adminUser1",
+      passwordHash: "hashed_password_1",
+      role: "admin",
+      email: "admin1@example.com",
+      fullName: "Admin One",
+      lastLogin: "2023-01-01T10:00:00Z"
+    },
+    {
+      id: "3d9c72e1-4c13-4f9e-9d0b-6a5c2b8f7e4d",
+      username: "adminUser2",
+      passwordHash: "hashed_password_2",
+      role: "moderator",
+      email: "admin2@example.com",
+      fullName: "Admin Two",
+      lastLogin: "2023-01-02T11:00:00Z"
+    }
+  ])
+  seller_insertMany(data: [
+    {
+      id: "a1b2c3d4-e5f6-7890-1234-567890abcdef",
+      businessName: "Electronics Emporium",
+      contactEmail: "sales@electronics.com",
+      status: "approved",
+      createdAt: "2023-03-15T09:00:00Z",
+      businessAddress: "123 Tech Lane",
+      phoneNumber: "555-1234",
+      description: "Your one-stop shop for all electronics.",
+      approvalDate: "2023-03-20T10:00:00Z"
+    },
+    {
+      id: "f0e9d8c7-b6a5-4321-fedc-ba9876543210",
+      businessName: "Fashion Hub",
+      contactEmail: "info@fashionhub.com",
+      status: "approved",
+      createdAt: "2023-04-01T14:30:00Z",
+      businessAddress: "456 Style Street",
+      phoneNumber: "555-5678",
+      description: "Trendy clothing for every occasion.",
+      approvalDate: "2023-04-05T15:00:00Z"
+    }
+  ])
+  productListing_insertMany(data: [
+    {
+      id: "11223344-5566-7788-99aa-bbccddeeff00",
+      seller: {id: "a1b2c3d4-e5f6-7890-1234-567890abcdef"},
+      productName: "Wireless Headphones",
+      price: 99.99,
+      status: "active",
+      createdAt: "2023-05-10T08:00:00Z",
+      description: "High-quality wireless headphones with noise cancellation.",
+      imageUrl: "http://example.com/headphones.jpg",
+      category: "Electronics",
+      approvalDate: "2023-05-12T09:00:00Z"
+    },
+    {
+      id: "aabbccdd-eeff-0011-2233-445566778899",
+      seller: {id: "a1b2c3d4-e5f6-7890-1234-567890abcdef"},
+      productName: "Smartwatch",
+      price: 199.99,
+      status: "active",
+      createdAt: "2023-05-11T12:00:00Z",
+      description: "Feature-rich smartwatch with health tracking.",
+      imageUrl: "http://example.com/smartwatch.jpg",
+      category: "Electronics",
+      approvalDate: "2023-05-13T13:00:00Z"
+    },
+    {
+      id: "ccee1122-3344-5566-7788-99aabbccddeeff",
+      seller: {id: "f0e9d8c7-b6a5-4321-fedc-ba9876543210"},
+      productName: "Summer Dress",
+      price: 49.99,
+      status: "active",
+      createdAt: "2023-06-01T10:00:00Z",
+      description: "Light and airy summer dress, perfect for any occasion.",
+      imageUrl: "http://example.com/dress.jpg",
+      category: "Apparel",
+      approvalDate: "2023-06-03T11:00:00Z"
+    }
+  ])
+  reviewAction_insertMany(data: [
+    {
+      id: "550e8400-e29b-41d4-a716-44665544000a",
+      adminUser: {id: "6e2e5052-094d-4e92-80b6-1937107c8a6f"},
+      actionType: "approve_listing",
+      targetId: "11223344-5566-7788-99aa-bbccddeeff00",
+      timestamp: "2023-05-12T09:00:00Z",
+      notes: "Listing meets all guidelines."
+    },
+    {
+      id: "550e8400-e29b-41d4-a716-44665544000b",
+      adminUser: {id: "3d9c72e1-4c13-4f9e-9d0b-6a5c2b8f7e4d"},
+      actionType: "reject_listing",
+      targetId: "aabbccdd-eeff-0011-2233-445566778899",
+      timestamp: "2023-05-13T13:00:00Z",
+      notes: "Missing product image."
+    },
+    {
+      id: "550e8400-e29b-41d4-a716-44665544000c",
+      adminUser: {id: "6e2e5052-094d-4e92-80b6-1937107c8a6f"},
+      actionType: "approve_listing",
+      targetId: "ccee1122-3344-5566-7788-99aabbccddeeff",
+      timestamp: "2023-06-03T11:00:00Z",
+      notes: "Approved after image update."
+    }
+  ])
+  demandPoint_insertMany(data: [
+    {
+      id: "a7b8c9d0-e1f2-3456-7890-abcdef123456",
+      latitude: 34.0522,
+      longitude: -118.2437,
+      demandScore: 100,
+      timestamp: "2023-07-01T10:00:00Z",
+      category: "Electronics",
+      queryTerm: "wireless headphones"
+    },
+    {
+      id: "b8c9d0e1-f2a3-4567-8901-bcdefa345678",
+      latitude: 40.7128,
+      longitude: -74.0060,
+      demandScore: 90,
+      timestamp: "2023-07-01T11:00:00Z",
+      category: "Apparel",
+      queryTerm: "summer dress"
+    }
+  ])
+}

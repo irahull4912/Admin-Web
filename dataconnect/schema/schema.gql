@@ -1,0 +1,56 @@
+type AdminUser @table {
+  username: String!
+  passwordHash: String!
+  role: String!
+  email: String
+  fullName: String
+  lastLogin: Timestamp
+}
+
+type Seller @table {
+  businessName: String!
+  contactEmail: String!
+  status: String!
+  createdAt: Timestamp!
+  businessAddress: String
+  phoneNumber: String
+  description: String
+  approvalDate: Timestamp
+}
+
+type ProductListing @table {
+  seller: Seller
+  productName: String!
+  price: Float!
+  status: String!
+  createdAt: Timestamp!
+  description: String
+  imageUrl: String
+  category: String
+  approvalDate: Timestamp
+  rejectionReason: String
+}
+
+type DemandPoint @table {
+  latitude: Float!
+  longitude: Float!
+  demandScore: Int!
+  timestamp: Timestamp!
+  category: String
+  queryTerm: String
+}
+
+type ReviewAction @table {
+  adminUser: AdminUser
+  actionType: String!
+  targetId: UUID!
+  timestamp: Timestamp!
+  notes: String
+}
+
+type Banner @table {
+  imageUrl: String!
+  linkUrl: String
+  altText: String
+  isActive: Boolean!
+}

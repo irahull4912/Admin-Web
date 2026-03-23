@@ -1,0 +1,42 @@
+query ListAllSellers @auth(level: PUBLIC, insecureReason: "This operation is safe to expose to the public") {
+  sellers {
+    id
+    businessName
+    contactEmail
+    status
+  }
+}
+
+mutation CreateProductListing($productName: String!, $price: Float!, $status: String!, $sellerId: UUID!) @auth(level: USER, insecureReason: "This operation is safe to expose to all logged in users.") {
+  productListing_insert(data: {
+    productName: $productName,
+    price: $price,
+    status: $status,
+    sellerId: $sellerId,
+    createdAt_expr: "request.time"
+  }) {
+    id
+  }
+}
+
+query GetMyProductListings @auth(level: USER) {
+  productListings(where: {seller: {id_expr: "auth.uid"}}) {
+    id
+    productName
+    price
+    status
+    createdAt
+  }
+}
+
+mutation RecordReviewAction($adminUserId: UUID!, $actionType: String!, $targetId: UUID!, $notes: String) @auth(level: USER, insecureReason: "This operation is safe to expose to all logged in users.") {
+  reviewAction_insert(data: {
+    adminUserId: $adminUserId,
+    actionType: $actionType,
+    targetId: $targetId,
+    timestamp_expr: "request.time",
+    notes: $notes
+  }) {
+    id
+  }
+}

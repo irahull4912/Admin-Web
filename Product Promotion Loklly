@@ -1,0 +1,31 @@
+# Product Promotions
+
+The Product Promotion feature for [Pro](file:///c:/Users/user/Downloads/download/src/app/seller/inventory/page.tsx#123-129) and `Partner` plans has been fully integrated into the platform! Sellers can now actively highlight their best inventory, and buyers will organically discover it faster.
+
+## Changes Made
+
+### 1. [src/app/seller/inventory/page.tsx](file:///c:/Users/user/Downloads/download/src/app/seller/inventory/page.tsx)
+- **Promotion Toggle**: Added a `Star` icon button next to the active/inactive switch.
+- **Strict Tier Limitations**: 
+  - `Growth` sellers are blocked entirely from promoting products.
+  - [Pro](file:///c:/Users/user/Downloads/download/src/app/seller/inventory/page.tsx#123-129) sellers are capped at exactly **1 active promoted product**.
+  - `Partner` sellers are capped at **up to 3 active promoted products**.
+- Pushing the star button updates the product document in Firestore, injecting an `isPromoted: true` and `promotedTier` (e.g. `'Partner'` or `'Pro'`) attribute.
+
+### 2. [src/app/buyer/search/page.tsx](file:///c:/Users/user/Downloads/download/src/app/buyer/search/page.tsx)
+- **Priority Sorting**: Directly modified the search result lists. While previously results were essentially randomly ordered (by fetch iteration), they are now actively sorted using a score.
+- `Partner` promoted items get 2 points.
+- [Pro](file:///c:/Users/user/Downloads/download/src/app/seller/inventory/page.tsx#123-129) promoted items get 1 point.
+- Standard items get 0 points.
+- This sorting naturally flows `Partner` products to the very top line of the search queries, followed by [Pro](file:///c:/Users/user/Downloads/download/src/app/seller/inventory/page.tsx#123-129), and then organic matches.
+
+### 3. [src/app/buyer/home/page.tsx](file:///c:/Users/user/Downloads/download/src/app/buyer/home/page.tsx)
+- **Global Discovery Algorithm Mod**: The local neighbourhood feed runs on an advanced ranking algorithm incorporating hyperlocal distance and trending intent. 
+- Introduced a `Promotion Boost` layer to this existing algorithm.
+  - `Partner` tier promoted products receive a huge `1000 point` baseline boost.
+  - [Pro](file:///c:/Users/user/Downloads/download/src/app/seller/inventory/page.tsx#123-129) tier products receive a `500 point` boost.
+- This guarantees they float past any locally organic highly-rated items from standard `Growth` stores, solidifying the monetary value of the upper subscription tiers.
+
+## Verification
+
+The systems correctly block promotion limits on the seller backend, and effortlessly prioritize the products on the buyer-facing interfaces across both direct search and algorithmic feeds.

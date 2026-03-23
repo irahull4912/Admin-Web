@@ -12,7 +12,8 @@ import {
   ChevronRight,
   ClockAlert,
   Zap,
-  Activity
+  Activity,
+  ImageIcon
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 
@@ -23,6 +24,7 @@ const navItems = [
   { label: "Pending Shops", href: "/admin/shops/pending", icon: ClockAlert },
   { label: "Subscriptions", href: "/admin/subscriptions", icon: CreditCard },
   { label: "Products", href: "/admin/products", icon: Package },
+  { label: "Banners", href: "/admin/banners", icon: ImageIcon },
   { label: "Pings", href: "/admin/pings", icon: Zap },
 ];
 

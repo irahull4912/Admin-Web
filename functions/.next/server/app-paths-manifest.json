@@ -1,0 +1,16 @@
+{
+  "/favicon.ico/route": "app/favicon.ico/route.js",
+  "/_not-found/page": "app/_not-found/page.js",
+  "/api/admin/banners/route": "app/api/admin/banners/route.js",
+  "/page": "app/page.js",
+  "/admin/login/page": "app/admin/login/page.js",
+  "/admin/products/[productId]/audit/page": "app/admin/products/[productId]/audit/page.js",
+  "/admin/dashboard/page": "app/admin/dashboard/page.js",
+  "/admin/banners/page": "app/admin/banners/page.js",
+  "/admin/pings/page": "app/admin/pings/page.js",
+  "/admin/products/page": "app/admin/products/page.js",
+  "/admin/shops/pending/page": "app/admin/shops/pending/page.js",
+  "/admin/subscriptions/page": "app/admin/subscriptions/page.js",
+  "/admin/sellers/page": "app/admin/sellers/page.js",
+  "/admin/users/page": "app/admin/users/page.js"
+}

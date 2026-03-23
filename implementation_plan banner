@@ -1,0 +1,58 @@
+# Banner Management Module Implementation Plan
+
+This plan outlines the steps to build the Banner Management module in the Admin Panel, including database schema updates, backend POST endpoint for secure uploads, and the frontend management UI.
+
+## User Review Required
+
+> [!WARNING]
+> The backend POST endpoint requires `firebase-admin` to securely upload images to Firebase Storage from the server and verify admin privileges. Since `firebase-admin` is not currently in the root [package.json](file:///c:/Users/user/Downloads/project%20%281%29/package.json), I will install it via `npm i firebase-admin` in the root directory.
+
+## Proposed Changes
+
+### Database Changes
+#### [MODIFY] [schema.gql](file:///c:/Users/user/Downloads/project%20(1)/dataconnect/schema/schema.gql)
+- Add `Banner` table definition:
+```graphql
+type Banner @table {
+  imageUrl: String!
+  linkUrl: String
+  altText: String
+  isActive: Boolean!
+}
+```
+
+---
+
+### Backend Components
+#### [NEW] [route.ts](file:///c:/Users/user/Downloads/project%20(1)/src/app/api/admin/banners/route.ts)
+- Implement `POST` endpoint to handle `multipart/form-data`.
+- Extract text fields (link_url, alt_text, is_active) and the image file.
+- Validate that the requesting user is an Admin using `verifyIdToken` and checking against the `adminUsers` Firestore collection or checking `SUPER_ADMIN_UID`.
+- Upload the image buffer to Firebase Storage using `firebase-admin` to a dedicated `banners/` path.
+- Save the metadata parameters + `imageUrl` to the Data Connect `Banner` table by executing a GraphQL mutation directly or via the DataConnect client.
+
+---
+
+### Frontend Components
+#### [MODIFY] [sidebar.tsx](file:///c:/Users/user/Downloads/project%20(1)/src/app/admin/components/sidebar.tsx)
+- Add a new navigation item for "Banners" linking to `/admin/banners`.
+
+#### [NEW] [page.tsx](file:///c:/Users/user/Downloads/project%20(1)/src/app/admin/banners/page.tsx)
+- Create a UI to manage banners.
+- Display a form with an explicit instruction message: "Images should be optimized for 1376x448 pixels."
+- The form will accept an image file, `link_url`, `alt_text`, and an initial `is_active` toggle.
+- Submitting the form posts `FormData` to the `/api/admin/banners` endpoint.
+- Include a list/table section displaying existing banners, with a toggle button to switch `is_active` on or off.
+
+## Verification Plan
+
+### Automated Tests
+Currently, there doesn't seem to be an automated test suite. If desired, API endpoints can be unit-tested, but I will focus on manual verification for this UI-heavy feature.
+
+### Manual Verification
+1. Open the project in the browser and navigate to `/admin/login` and sign in.
+2. Verify that the "Banners" sidebar link appears and routes successfully to `/admin/banners`.
+3. Try uploading a banner through the form on the Banners page and submit. Observe any success/error toasts.
+4. Verify the newly uploaded banner image is visible in Firebase Storage and the metadata appears in the Data Connect database.
+5. In the UI list, toggle the `is_active` state on/off and verify the UI updates accordingly and saves the state to the backend.
+6. Attempt to hit the `/api/admin/banners` endpoint with a non-admin token or an unauthenticated request to verify the security constraints correctly block access.

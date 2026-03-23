@@ -1,0 +1,25 @@
+# Banner Management Implementation Walkthrough
+
+The Banner Management module has been successfully implemented into the Admin panel. Here is a review of the changes and how to interact with the new feature.
+
+## Changes Made
+
+1. **Database Schema Update**: 
+   - Modified [schema.gql](file:///c:/Users/user/Downloads/project%20%281%29/dataconnect/schema/schema.gql) to declare a [Banner](file:///c:/Users/user/Downloads/project%20%281%29/src/app/admin/banners/page.tsx#15-23) representation for Firebase Data Connect.
+2. **Backend Services & Security**:
+   - Installed `firebase-admin` in the Next.js target environment to handle secured endpoints.
+   - Initialized a [src/firebase/admin.ts](file:///c:/Users/user/Downloads/project%20%281%29/src/firebase/admin.ts) configured for the admin-level data writes and storage uploads.
+   - Created the endpoint [/api/admin/banners/route.ts](file:///c:/Users/user/Downloads/project%20%281%29/src/app/api/admin/banners/route.ts) which uses Next.js Route Handlers to securely receive `multipart/form-data`, validates that the request originated from an Admin user using `verifyIdToken`, uploads the incoming file directly into Firebase Storage, and retains the metadata to Firestore collection `banners`.
+3. **Frontend Implementation**:
+   - Upgraded the Admin Sidebar component ([sidebar.tsx](file:///c:/Users/user/Downloads/project%20%281%29/src/app/admin/components/sidebar.tsx)) to feature a link to the [Banners](file:///c:/Users/user/Downloads/project%20%281%29/src/app/admin/banners/page.tsx#24-281) module represented by an `ImageIcon`.
+   - Bootstrapped [src/app/admin/banners/page.tsx](file:///c:/Users/user/Downloads/project%20%281%29/src/app/admin/banners/page.tsx), bringing forth an intuitive dashboard. On the left side, administrators can securely upload optimized banners (1376x448 pixel guidance mapped explicitly for operators). On the right side, an interactive list of historical banners is available.
+   - Integrated live on-off toggles bound via Firestore listeners, facilitating instant publishing and drafting. 
+
+## Validation Highlights
+* **Security Constraints Enforced**: The POST route verifies the Firebase auth token with the Admin constraints (`adminUsers` collection mapping or `SUPER_ADMIN_UID`), denying general users.
+* **Storage Allocation**: Files directly bypass generic DB blobs and upload natively to GCP Storage under `banners/`.
+* **Dynamic Loading Strategy**: UI automatically updates via Firestore snapshots `onSnapshot` reacting immediately when status toggles trigger.
+
+## Code Diff Summary
+render_diffs(file:///c:/Users/user/Downloads/project%20(1)/src/app/admin/components/sidebar.tsx)
+render_diffs(file:///c:/Users/user/Downloads/project%20(1)/dataconnect/schema/schema.gql)
